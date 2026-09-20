@@ -23,9 +23,10 @@ export function RetryQueueWorkspace() {
   // Keyed by loan_id, not by file -- an operator's resume/stop decision is
   // about the loan, so it persists across "Simulate new file" clicks.
   const [operatorDecisions, setOperatorDecisions] = useState<Map<number, OperatorDecision>>(new Map())
-  // Which loans have been manually collected on this session. Also
-  // loan-scoped, not file-scoped, so a previously-collected loan stays
-  // marked "Collected" if it reappears in a later simulated file.
+  // Which loans have had a collection attempt manually initiated this
+  // session. Also loan-scoped, not file-scoped, so a previously-initiated
+  // loan stays marked "Collection started" if it reappears in a later
+  // simulated file.
   const [collectedLoanIds, setCollectedLoanIds] = useState<Set<number>>(new Set())
   // Loans an operator has contacted directly instead of continuing
   // automated retries. Loan-scoped like the other operator state above --

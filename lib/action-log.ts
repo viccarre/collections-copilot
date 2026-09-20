@@ -21,7 +21,7 @@ export interface ActionLogEntry {
 }
 
 export const ACTION_LABELS: Record<OperatorActionType, string> = {
-  collected: "Collected",
+  collected: "Collection process started",
   "cleared-for-retry": "Cleared for retry",
   stopped: "Stopped permanently",
   "contacted-borrower": "Contacted borrower",

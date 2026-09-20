@@ -179,7 +179,7 @@ export function YesSection({
                   ) : (
                     <Badge variant="secondary">
                       <CheckIcon data-icon="inline-start" />
-                      All collected
+                      All collection started
                     </Badge>
                   )}
                 </div>
@@ -273,7 +273,7 @@ export function YesSection({
                             <TableCell className="text-right">
                               <div className="flex flex-wrap items-center justify-end gap-2">
                                 {collected ? (
-                                  <Badge variant="secondary">Collected</Badge>
+                                  <Badge variant="secondary">Collection started</Badge>
                                 ) : (
                                   <Button size="sm" onClick={() => onCollect(row)}>
                                     <HandCoinsIcon data-icon="inline-start" />
