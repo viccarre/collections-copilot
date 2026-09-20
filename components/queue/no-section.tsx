@@ -1,10 +1,11 @@
 "use client"
 
-import { OctagonXIcon } from "lucide-react"
+import { CircleHelpIcon, OctagonXIcon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { formatCurrency } from "@/lib/utils"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { formatCurrency, FULL_BALANCE_ASSUMPTION_NOTE } from "@/lib/utils"
 import type { EnrichedDecisionRow } from "@/lib/portfolio"
 
 function trackLabel(track: string): string {
@@ -45,7 +46,24 @@ export function NoSection({ rows, onStopPermanently }: NoSectionProps) {
                 <TableHead>Bank</TableHead>
                 <TableHead>Track</TableHead>
                 <TableHead>Eligible today</TableHead>
-                <TableHead className="text-right">Exposure</TableHead>
+                <TableHead className="text-right">
+                  <span className="inline-flex items-center justify-end gap-1">
+                    Exposure
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <span tabIndex={0} className="text-muted-foreground hover:text-foreground">
+                            <CircleHelpIcon className="size-3.5" />
+                            <span className="sr-only">Note on exposure amount</span>
+                          </span>
+                        }
+                      />
+                      <TooltipContent className="max-w-sm" align="end">
+                        {FULL_BALANCE_ASSUMPTION_NOTE}
+                      </TooltipContent>
+                    </Tooltip>
+                  </span>
+                </TableHead>
                 <TableHead>Rationale</TableHead>
                 <TableHead className="text-right">Action</TableHead>
               </TableRow>

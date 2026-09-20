@@ -1,4 +1,4 @@
-import { FileTextIcon } from "lucide-react"
+import { CircleHelpIcon, FileTextIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -10,7 +10,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { formatCurrency } from "@/lib/utils"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { formatCurrency, FULL_BALANCE_ASSUMPTION_NOTE } from "@/lib/utils"
 import type { SimulatedCollectionFile } from "@/lib/collection-file"
 
 function formatTimestamp(iso: string): string {
@@ -63,7 +64,24 @@ export function CollectionFileSummary({ file }: { file: SimulatedCollectionFile 
                     <TableHead>Loan ID</TableHead>
                     <TableHead>Bank</TableHead>
                     <TableHead className="text-right">Loan amount</TableHead>
-                    <TableHead className="text-right">Outstanding</TableHead>
+                    <TableHead className="text-right">
+                      <span className="inline-flex items-center justify-end gap-1">
+                        Outstanding
+                        <Tooltip>
+                          <TooltipTrigger
+                            render={
+                              <span tabIndex={0} className="text-muted-foreground hover:text-foreground">
+                                <CircleHelpIcon className="size-3.5" />
+                                <span className="sr-only">Note on outstanding balance</span>
+                              </span>
+                            }
+                          />
+                          <TooltipContent className="max-w-sm" align="end">
+                            {FULL_BALANCE_ASSUMPTION_NOTE}
+                          </TooltipContent>
+                        </Tooltip>
+                      </span>
+                    </TableHead>
                     <TableHead className="text-right">Overdue days</TableHead>
                   </TableRow>
                 </TableHeader>

@@ -1,5 +1,7 @@
+import { CircleHelpIcon } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { formatCurrency } from "@/lib/utils"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { formatCurrency, FULL_BALANCE_ASSUMPTION_NOTE } from "@/lib/utils"
 import type { QueueComposition } from "@/lib/metrics"
 
 const SEGMENTS = [
@@ -19,7 +21,20 @@ export function QueueCompositionCard({ composition }: { composition: QueueCompos
       <CardContent className="flex flex-col gap-4">
         <div className="flex items-baseline gap-2">
           <p className="text-2xl font-semibold tabular-nums">{total}</p>
-          <p className="text-sm text-muted-foreground">loans &middot; {formatCurrency(composition.totalDollars)} exposure</p>
+          <p className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+            loans &middot; {formatCurrency(composition.totalDollars)} exposure
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <span tabIndex={0} className="text-muted-foreground hover:text-foreground">
+                    <CircleHelpIcon className="size-3.5" />
+                    <span className="sr-only">Note on exposure amount</span>
+                  </span>
+                }
+              />
+              <TooltipContent className="max-w-sm">{FULL_BALANCE_ASSUMPTION_NOTE}</TooltipContent>
+            </Tooltip>
+          </p>
         </div>
 
         <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted" role="img" aria-label="Queue composition by decision">

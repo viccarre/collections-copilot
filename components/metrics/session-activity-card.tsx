@@ -1,5 +1,7 @@
+import { CircleHelpIcon } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { formatCurrency } from "@/lib/utils"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { formatCurrency, FULL_BALANCE_ASSUMPTION_NOTE } from "@/lib/utils"
 import type { SessionActivity } from "@/lib/metrics"
 
 export function SessionActivityCard({ activity }: { activity: SessionActivity }) {
@@ -14,7 +16,20 @@ export function SessionActivityCard({ activity }: { activity: SessionActivity })
           <div className="flex flex-col gap-0.5">
             <dt className="text-xs text-muted-foreground">Collected</dt>
             <dd className="text-lg font-semibold tabular-nums text-success">{activity.collectedCount}</dd>
-            <dd className="text-xs text-muted-foreground">{formatCurrency(activity.collectedDollars)}</dd>
+            <dd className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+              {formatCurrency(activity.collectedDollars)}
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <span tabIndex={0} className="text-muted-foreground hover:text-foreground">
+                      <CircleHelpIcon className="size-3" />
+                      <span className="sr-only">Note on collected amount</span>
+                    </span>
+                  }
+                />
+                <TooltipContent className="max-w-sm">{FULL_BALANCE_ASSUMPTION_NOTE}</TooltipContent>
+              </Tooltip>
+            </dd>
           </div>
           <div className="flex flex-col gap-0.5">
             <dt className="text-xs text-muted-foreground">Cleared for retry</dt>

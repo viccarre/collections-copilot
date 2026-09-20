@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { formatCurrency } from "@/lib/utils"
+import { formatCurrency, FULL_BALANCE_ASSUMPTION_NOTE } from "@/lib/utils"
 import type { EnrichedDecisionRow } from "@/lib/portfolio"
 import type { TreatmentTrack } from "@/lib/scoring-engine"
 
@@ -173,7 +173,24 @@ export function YesSection({ rows, collectedLoanIds, onCollect, onBulkCollect }:
                             </Tooltip>
                           </span>
                         </TableHead>
-                        <TableHead className="text-right">Exposure</TableHead>
+                        <TableHead className="text-right">
+                          <span className="inline-flex items-center justify-end gap-1">
+                            Exposure
+                            <Tooltip>
+                              <TooltipTrigger
+                                render={
+                                  <span tabIndex={0} className="text-muted-foreground hover:text-foreground">
+                                    <CircleHelpIcon className="size-3.5" />
+                                    <span className="sr-only">Note on exposure amount</span>
+                                  </span>
+                                }
+                              />
+                              <TooltipContent className="max-w-sm" align="end">
+                                {FULL_BALANCE_ASSUMPTION_NOTE}
+                              </TooltipContent>
+                            </Tooltip>
+                          </span>
+                        </TableHead>
                         <TableHead>Rationale</TableHead>
                         <TableHead className="text-right">Action</TableHead>
                       </TableRow>
