@@ -4,9 +4,8 @@ import { useState } from "react"
 import { ChevronRightIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { ChargebackRateBySegmentCard } from "@/components/metrics/chargeback-rate-by-segment-card"
+import { OverdueAgeBreakdownCard } from "@/components/metrics/overdue-age-breakdown-card"
 import { QueueCompositionCard } from "@/components/metrics/queue-composition-card"
-import { SessionActivityCard } from "@/components/metrics/session-activity-card"
 import { cn } from "@/lib/utils"
 import type { QueueMetrics } from "@/lib/metrics"
 
@@ -27,12 +26,8 @@ export function MetricsDashboard({ metrics }: { metrics: QueueMetrics }) {
         <div className="flex flex-col gap-4 pt-4">
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <QueueCompositionCard composition={metrics.composition} attemptsAvoided={metrics.attemptsAvoided} />
-            <ChargebackRateBySegmentCard
-              dollarsProtected={metrics.dollarsProtectedFromChargebackRisk}
-              segments={metrics.chargebackBySegment}
-            />
+            <OverdueAgeBreakdownCard buckets={metrics.overdueAgeBreakdown} />
           </div>
-          <SessionActivityCard activity={metrics.sessionActivity} />
         </div>
       </CollapsibleContent>
     </Collapsible>

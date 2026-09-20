@@ -60,6 +60,7 @@ export interface EnrichedDecisionRow extends DecisionRow {
   loan_amount: number
   total_amount_outstanding: number
   has_chargeback: boolean
+  overdue_days: number | null
 }
 
 /**
@@ -89,6 +90,7 @@ export function scoreCollectionFile(
       loan_amount: loan.loan_amount,
       total_amount_outstanding: loan.total_amount_outstanding,
       has_chargeback: loan.has_chargeback,
+      overdue_days: loan.overdue_days,
     }
   })
 }

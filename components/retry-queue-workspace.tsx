@@ -53,7 +53,7 @@ export function RetryQueueWorkspace() {
     [rows, awaitingResponseLoanIds],
   )
 
-  const metrics = useMemo(() => computeQueueMetrics(activeRows, actionLog), [activeRows, actionLog])
+  const metrics = useMemo(() => computeQueueMetrics(activeRows), [activeRows])
 
   function handleSimulate() {
     setCollectionFile(simulateCollectionFile())
