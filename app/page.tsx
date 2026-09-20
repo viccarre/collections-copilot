@@ -4,9 +4,9 @@ export default function Page() {
   return (
     <main className="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-10">
       <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold text-balance">Retry decisioning queue</h1>
+          <h1 className="text-2xl font-semibold text-balance">Collections Copilot</h1>
         <p className="max-w-2xl text-sm text-pretty text-muted-foreground">
-          Every retry, clear, and stop is an explicit, logged operator action.
+            Every retry, hold, and stop is a logged operator decision.
         </p>
       </header>
 

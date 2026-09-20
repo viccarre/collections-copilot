@@ -4,7 +4,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Smart Retry System — Operator Queue',
+  title: 'Collections Copilot',
   description:
     'Belvo collections decisioning prototype: deterministic retry scoring rendered as a human-reviewed operator queue.',
   generator: 'v0.app',
