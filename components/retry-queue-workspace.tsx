@@ -1,8 +1,10 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { FileStackIcon, RefreshCwIcon } from "lucide-react"
+import { FileStackIcon, HistoryIcon, RefreshCwIcon } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { ActionLog } from "@/components/action-log"
@@ -24,6 +26,15 @@ export function RetryQueueWorkspace() {
   // loan-scoped, not file-scoped, so a previously-collected loan stays
   // marked "Collected" if it reappears in a later simulated file.
   const [collectedLoanIds, setCollectedLoanIds] = useState<Set<number>>(new Set())
+  // Loans an operator has contacted directly instead of continuing
+  // automated retries. Loan-scoped like the other operator state above --
+  // once contacted, a loan stays parked in Awaiting response even if it
+  // reappears in a later simulated file.
+  const [awaitingResponseLoanIds, setAwaitingResponseLoanIds] = useState<Set<number>>(new Set())
+  // Manual due-date overrides. This never changes what the scoring engine
+  // computes -- it only changes what's displayed and logs the operator's
+  // intent; nothing auto-fires on the picked date.
+  const [rescheduledDueDates, setRescheduledDueDates] = useState<Map<number, string>>(new Map())
   const [actionLog, setActionLog] = useState<ActionLogEntry[]>([])
 
   const rows = useMemo(
@@ -31,7 +42,18 @@ export function RetryQueueWorkspace() {
     [collectionFile, operatorDecisions],
   )
 
-  const metrics = useMemo(() => computeQueueMetrics(rows, actionLog), [rows, actionLog])
+  // Loans awaiting a borrower response are pulled out of the normal
+  // yes/hold/no buckets entirely and shown in their own tab instead.
+  const activeRows = useMemo(
+    () => rows.filter((row) => !awaitingResponseLoanIds.has(row.loan_id)),
+    [rows, awaitingResponseLoanIds],
+  )
+  const awaitingRows = useMemo(
+    () => rows.filter((row) => awaitingResponseLoanIds.has(row.loan_id)),
+    [rows, awaitingResponseLoanIds],
+  )
+
+  const metrics = useMemo(() => computeQueueMetrics(activeRows, actionLog), [activeRows, actionLog])
 
   function handleSimulate() {
     setCollectionFile(simulateCollectionFile())
@@ -74,6 +96,35 @@ export function RetryQueueWorkspace() {
     setActionLog((prev) => [createActionLogEntry(row.loan_id, "stopped", row.rationale), ...prev])
   }
 
+  function handleContactBorrower(row: EnrichedDecisionRow) {
+    setAwaitingResponseLoanIds((prev) => new Set(prev).add(row.loan_id))
+    setActionLog((prev) => [
+      createActionLogEntry(
+        row.loan_id,
+        "contacted-borrower",
+        `${row.rationale} An operator contacted the borrower directly instead of another automated attempt -- this loan moved to Awaiting response.`,
+      ),
+      ...prev,
+    ])
+  }
+
+  function handleReschedule(row: EnrichedDecisionRow, date: string) {
+    setRescheduledDueDates((prev) => {
+      const next = new Map(prev)
+      next.set(row.loan_id, date)
+      return next
+    })
+    const computedDate = row.next_eligible_at ? row.next_eligible_at.slice(0, 10) : "unknown"
+    setActionLog((prev) => [
+      createActionLogEntry(
+        row.loan_id,
+        "rescheduled",
+        `${row.rationale} An operator rescheduled this loan's next attempt to ${date} (model had computed ${computedDate}). This is a manual reminder only -- the operator still needs to come back and click Collect.`,
+      ),
+      ...prev,
+    ])
+  }
+
   if (!collectionFile) {
     return (
       <Empty className="border">
@@ -102,34 +153,58 @@ export function RetryQueueWorkspace() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <CollectionFileSummary file={collectionFile} />
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button variant="outline" size="sm" onClick={handleSimulate} className="sm:self-start">
-                <RefreshCwIcon data-icon="inline-start" />
-                Simulate new file
-              </Button>
-            }
-          />
-          <TooltipContent>
-            Discards the current collection file and generates a new random subset of loans.
-            Operator decisions and the action log persist.
-          </TooltipContent>
-        </Tooltip>
+        <div className="flex flex-wrap items-center gap-2 sm:self-start">
+          <Dialog>
+            <DialogTrigger
+              render={
+                <Button variant="outline" size="sm">
+                  <HistoryIcon data-icon="inline-start" />
+                  Action log
+                  <Badge variant="secondary">{actionLog.length}</Badge>
+                </Button>
+              }
+            />
+            <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Action log</DialogTitle>
+                <DialogDescription>
+                  Every operator action recorded this session, most recent first.
+                </DialogDescription>
+              </DialogHeader>
+              <ActionLog entries={actionLog} />
+            </DialogContent>
+          </Dialog>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button variant="outline" size="sm" onClick={handleSimulate}>
+                  <RefreshCwIcon data-icon="inline-start" />
+                  Simulate a new Collection File
+                </Button>
+              }
+            />
+            <TooltipContent>
+              Discards the current collection file and generates a new random subset of loans.
+              Operator decisions and the action log persist.
+            </TooltipContent>
+          </Tooltip>
+        </div>
       </div>
 
       <MetricsDashboard metrics={metrics} />
 
       <GroupedDecisionQueue
-        rows={rows}
+        rows={activeRows}
+        awaitingRows={awaitingRows}
         collectedLoanIds={collectedLoanIds}
+        rescheduledDueDates={rescheduledDueDates}
         onCollect={handleCollect}
         onBulkCollect={handleBulkCollect}
         onClearForRetry={handleClearForRetry}
         onStopPermanently={handleStopPermanently}
+        onContactBorrower={handleContactBorrower}
+        onReschedule={handleReschedule}
       />
-
-      <ActionLog entries={actionLog} />
     </div>
   )
 }

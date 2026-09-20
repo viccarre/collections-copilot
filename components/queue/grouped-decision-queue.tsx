@@ -8,6 +8,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { YesSection } from "@/components/queue/yes-section"
 import { HoldSection } from "@/components/queue/hold-section"
 import { NoSection } from "@/components/queue/no-section"
+import { AwaitingResponseSection } from "@/components/queue/awaiting-response-section"
 import type { EnrichedDecisionRow } from "@/lib/portfolio"
 
 function byExposureDesc(a: EnrichedDecisionRow, b: EnrichedDecisionRow): number {
@@ -20,24 +21,34 @@ const TOP_LEVEL_TAB_EXPLANATIONS = {
   yes: "The model recommends attempting collection on these loans today. They either have no failure history yet, recently succeeded, or are still within a productive retry window -- the data supports trying again now, though recovery odds vary a lot within this bucket (see each sub-tab).",
   hold: "These loans have a chargeback history and are paused for a human decision instead of being auto-approved for retry. A one-time, year-old chargeback reads very differently than several recent ones, so the model surfaces the chargeback count, dollar total, and recency and asks an analyst to judge whether it's safe to resume retries or better to stop.",
   no: "The model recommends against further automated retries on these loans -- either the last failure was a dead-end reason that will never succeed on this rail, or an operator explicitly stopped the loan. Continuing to attempt collection anyway would most likely fail again and, in the dead-reason case, may not be a valid retry at all; route these downstream instead.",
+  awaiting:
+    "These loans are paused because an operator reached out to the borrower directly instead of attempting another automated collection. This is simulated -- no real message goes out -- but it moves the record from blindly retrying and risking more chargeback exposure to human-in-the-loop, informed by whatever the borrower says back.",
 } as const
 
 interface GroupedDecisionQueueProps {
   rows: EnrichedDecisionRow[]
+  awaitingRows: EnrichedDecisionRow[]
   collectedLoanIds: Set<number>
+  rescheduledDueDates: Map<number, string>
   onCollect: (row: EnrichedDecisionRow) => void
   onBulkCollect: (rows: EnrichedDecisionRow[]) => void
   onClearForRetry: (row: EnrichedDecisionRow) => void
   onStopPermanently: (row: EnrichedDecisionRow) => void
+  onContactBorrower: (row: EnrichedDecisionRow) => void
+  onReschedule: (row: EnrichedDecisionRow, date: string) => void
 }
 
 export function GroupedDecisionQueue({
   rows,
+  awaitingRows,
   collectedLoanIds,
+  rescheduledDueDates,
   onCollect,
   onBulkCollect,
   onClearForRetry,
   onStopPermanently,
+  onContactBorrower,
+  onReschedule,
 }: GroupedDecisionQueueProps) {
   const { yesRows, holdRows, noRows } = useMemo(
     () => ({
@@ -116,15 +127,50 @@ export function GroupedDecisionQueue({
             <TooltipContent className="max-w-sm">{TOP_LEVEL_TAB_EXPLANATIONS.no}</TooltipContent>
           </Tooltip>
         </TabsTrigger>
+        <TabsTrigger value="awaiting" className="gap-2 data-[state=active]:text-primary">
+          Awaiting response
+          <Badge variant="secondary">{awaitingRows.length}</Badge>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <span
+                  tabIndex={0}
+                  className="text-muted-foreground hover:text-foreground"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <CircleHelpIcon className="size-3.5" />
+                  <span className="sr-only">What is Awaiting response?</span>
+                </span>
+              }
+            />
+            <TooltipContent className="max-w-sm">{TOP_LEVEL_TAB_EXPLANATIONS.awaiting}</TooltipContent>
+          </Tooltip>
+        </TabsTrigger>
       </TabsList>
       <TabsContent value="yes">
-        <YesSection rows={yesRows} collectedLoanIds={collectedLoanIds} onCollect={onCollect} onBulkCollect={onBulkCollect} />
+        <YesSection
+          rows={yesRows}
+          collectedLoanIds={collectedLoanIds}
+          rescheduledDueDates={rescheduledDueDates}
+          onCollect={onCollect}
+          onBulkCollect={onBulkCollect}
+          onContactBorrower={onContactBorrower}
+          onReschedule={onReschedule}
+        />
       </TabsContent>
       <TabsContent value="hold">
-        <HoldSection rows={holdRows} onClearForRetry={onClearForRetry} onStopPermanently={onStopPermanently} />
+        <HoldSection
+          rows={holdRows}
+          onClearForRetry={onClearForRetry}
+          onStopPermanently={onStopPermanently}
+          onContactBorrower={onContactBorrower}
+        />
       </TabsContent>
       <TabsContent value="no">
         <NoSection rows={noRows} onStopPermanently={onStopPermanently} />
+      </TabsContent>
+      <TabsContent value="awaiting">
+        <AwaitingResponseSection rows={awaitingRows} />
       </TabsContent>
     </Tabs>
   )

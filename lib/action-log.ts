@@ -4,7 +4,12 @@
  * clear-for-retry / stop), not what the engine recommended.
  */
 
-export type OperatorActionType = "collected" | "cleared-for-retry" | "stopped"
+export type OperatorActionType =
+  | "collected"
+  | "cleared-for-retry"
+  | "stopped"
+  | "contacted-borrower"
+  | "rescheduled"
 
 export interface ActionLogEntry {
   id: string
@@ -19,6 +24,8 @@ export const ACTION_LABELS: Record<OperatorActionType, string> = {
   collected: "Collected",
   "cleared-for-retry": "Cleared for retry",
   stopped: "Stopped permanently",
+  "contacted-borrower": "Contacted borrower",
+  rescheduled: "Rescheduled",
 }
 
 function randomSuffix(): string {

@@ -1,15 +1,26 @@
 "use client"
 
 import { useState } from "react"
-import { CheckIcon, CircleHelpIcon, HandCoinsIcon } from "lucide-react"
+import { CalendarClockIcon, CheckIcon, CircleHelpIcon, HandCoinsIcon, MessageCircleIcon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { ReschedulePopover } from "@/components/queue/reschedule-popover"
 import { formatCurrency, FULL_BALANCE_ASSUMPTION_NOTE } from "@/lib/utils"
 import type { EnrichedDecisionRow } from "@/lib/portfolio"
 import type { TreatmentTrack } from "@/lib/scoring-engine"
+
+// Tracks where the rationale already states a computed "next attempt due"
+// date from cadence math -- these are eligible for a per-row manual
+// reschedule override.
+const RESCHEDULABLE_TRACKS = new Set<TreatmentTrack>(["standard_cadence", "cost_aware_throttle", "long_tail_dormant"])
+
+// Tracks with a low enough success rate that reaching out to the borrower
+// directly (instead of another blind automated attempt) is a reasonable
+// alternative to offer per row.
+const CONTACTABLE_TRACKS = new Set<TreatmentTrack>(["cost_aware_throttle", "long_tail_dormant"])
 
 const YES_TRACK_ORDER: TreatmentTrack[] = [
   "new_unattempted",
@@ -66,11 +77,22 @@ function cadenceLabel(rows: EnrichedDecisionRow[]): string {
 interface YesSectionProps {
   rows: EnrichedDecisionRow[]
   collectedLoanIds: Set<number>
+  rescheduledDueDates: Map<number, string>
   onCollect: (row: EnrichedDecisionRow) => void
   onBulkCollect: (rows: EnrichedDecisionRow[]) => void
+  onContactBorrower: (row: EnrichedDecisionRow) => void
+  onReschedule: (row: EnrichedDecisionRow, date: string) => void
 }
 
-export function YesSection({ rows, collectedLoanIds, onCollect, onBulkCollect }: YesSectionProps) {
+export function YesSection({
+  rows,
+  collectedLoanIds,
+  rescheduledDueDates,
+  onCollect,
+  onBulkCollect,
+  onContactBorrower,
+  onReschedule,
+}: YesSectionProps) {
   const subgroups = YES_TRACK_ORDER.map((track) => ({
     track,
     rows: rows.filter((row) => row.treatment_track === track),
@@ -177,6 +199,10 @@ export function YesSection({ rows, collectedLoanIds, onCollect, onBulkCollect }:
                     <TableBody>
                       {groupRows.map((row) => {
                         const collected = collectedLoanIds.has(row.loan_id)
+                        const overrideDate = rescheduledDueDates.get(row.loan_id)
+                        const canReschedule = RESCHEDULABLE_TRACKS.has(row.treatment_track)
+                        const canContact = CONTACTABLE_TRACKS.has(row.treatment_track)
+                        const computedDueDate = row.next_eligible_at ? row.next_eligible_at.slice(0, 10) : undefined
                         return (
                           <TableRow key={row.loan_id}>
                             <TableCell className="font-mono text-sm">{row.loan_id}</TableCell>
@@ -190,17 +216,39 @@ export function YesSection({ rows, collectedLoanIds, onCollect, onBulkCollect }:
                               {formatCurrency(row.total_amount_outstanding)}
                             </TableCell>
                             <TableCell className="max-w-md whitespace-normal text-sm text-muted-foreground">
-                              {row.rationale}
+                              <p>{row.rationale}</p>
+                              {overrideDate ? (
+                                <p className="mt-1.5 inline-flex items-center gap-1.5 rounded-md border border-warning/30 bg-warning/10 px-2 py-1 text-xs font-medium text-warning">
+                                  <CalendarClockIcon className="size-3.5" />
+                                  Next attempt due {overrideDate} &mdash; operator override
+                                  {computedDueDate ? ` (model computed ${computedDueDate})` : null}
+                                </p>
+                              ) : null}
                             </TableCell>
                             <TableCell className="text-right">
-                              {collected ? (
-                                <Badge variant="secondary">Collected</Badge>
-                              ) : (
-                                <Button size="sm" variant="outline" onClick={() => onCollect(row)}>
-                                  <HandCoinsIcon data-icon="inline-start" />
-                                  Collect
-                                </Button>
-                              )}
+                              <div className="flex flex-wrap justify-end gap-2">
+                                {collected ? (
+                                  <Badge variant="secondary">Collected</Badge>
+                                ) : (
+                                  <Button size="sm" variant="outline" onClick={() => onCollect(row)}>
+                                    <HandCoinsIcon data-icon="inline-start" />
+                                    Collect
+                                  </Button>
+                                )}
+                                {canReschedule ? (
+                                  <ReschedulePopover
+                                    loanId={row.loan_id}
+                                    defaultDate={overrideDate ?? computedDueDate ?? ""}
+                                    onReschedule={(date) => onReschedule(row, date)}
+                                  />
+                                ) : null}
+                                {canContact ? (
+                                  <Button size="sm" variant="outline" onClick={() => onContactBorrower(row)}>
+                                    <MessageCircleIcon data-icon="inline-start" />
+                                    Contact borrower
+                                  </Button>
+                                ) : null}
+                              </div>
                             </TableCell>
                           </TableRow>
                         )
