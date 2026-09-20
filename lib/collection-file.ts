@@ -13,6 +13,7 @@
  */
 
 import collectionFileData from "@/data/collection_file_150.json"
+import { getMostRecentHistoryTimestamp } from "@/lib/loan-history"
 
 export interface CollectionFileLoan {
   loan_id: number
@@ -32,13 +33,34 @@ const collectionFileSample = collectionFileData as CollectionFileSampleFile
 
 export const COLLECTION_FILE_NOTE = collectionFileSample.generated_note
 
+/**
+ * The prototype's "today" -- exactly 1 calendar day after the most recent
+ * record timestamp anywhere in the loan history/attempt dataset. This
+ * dataset is historical (it ends around November 2025), so anchoring off
+ * the real wall-clock date would make overdue-days, cadence eligibility,
+ * and next-attempt-due math drift further out of sync with the data every
+ * day this prototype keeps running. Every downstream "today" -- asOf below,
+ * plus everything scoring-engine.ts derives from it -- must use this
+ * instead of `new Date()`.
+ */
+function computeAnchoredAsOf(): string {
+  const mostRecent = getMostRecentHistoryTimestamp()
+  const anchored = new Date(
+    Date.UTC(mostRecent.getUTCFullYear(), mostRecent.getUTCMonth(), mostRecent.getUTCDate() + 1),
+  )
+  return anchored.toISOString().slice(0, 10)
+}
+
+/** Dataset-anchored "today", as a YYYY-MM-DD date string. */
+export const COLLECTION_FILE_AS_OF = computeAnchoredAsOf()
+
 /** All 150 real loans that could show up in a given day's collection file. */
 export function getCollectionFilePool(): CollectionFileLoan[] {
   return collectionFileSample.loans
 }
 
 export interface SimulatedCollectionFile {
-  /** Matches the sample's own as-of date -- the scoring engine's asOf for this file. */
+  /** Dataset-anchored "today" (see COLLECTION_FILE_AS_OF) -- the scoring engine's asOf for this file. */
   asOf: string
   /** When this particular simulated file was generated, for display only. */
   generatedAt: string
@@ -64,7 +86,7 @@ export function simulateCollectionFile(): SimulatedCollectionFile {
   const selected = shuffled.slice(0, count).sort((a, b) => a.loan_id - b.loan_id)
 
   return {
-    asOf: collectionFileSample.as_of,
+    asOf: COLLECTION_FILE_AS_OF,
     generatedAt: new Date().toISOString(),
     loans: selected,
   }

@@ -32,3 +32,27 @@ const loanHistoryById = new Map<number, LoanHistoryRecord>(
 export function getLoanHistory(loanId: number): LoanHistoryRecord | undefined {
   return loanHistoryById.get(loanId)
 }
+
+/**
+ * The latest record timestamp anywhere in the accumulated history
+ * (last_attempt_at or last_chargeback_at, across every loan). This dataset
+ * is historical -- its records stop around November 2025 -- so any
+ * "today" used for downstream cadence/eligibility math must be derived
+ * from this value, never from the real wall-clock date, or the numbers
+ * stop representing a coherent point-in-time snapshot.
+ */
+export function getMostRecentHistoryTimestamp(): Date {
+  let maxMs = 0
+  for (const loan of loanHistorySample.loans) {
+    if (loan.last_attempt_at) {
+      maxMs = Math.max(maxMs, new Date(loan.last_attempt_at).getTime())
+    }
+    if (loan.last_chargeback_at) {
+      maxMs = Math.max(maxMs, new Date(loan.last_chargeback_at).getTime())
+    }
+  }
+  if (maxMs === 0) {
+    throw new Error("No timestamped records found in loan history -- cannot anchor 'today'.")
+  }
+  return new Date(maxMs)
+}
