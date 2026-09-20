@@ -1,6 +1,8 @@
 "use client"
 
 import { useMemo } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { YesSection } from "@/components/queue/yes-section"
 import { HoldSection } from "@/components/queue/hold-section"
 import { NoSection } from "@/components/queue/no-section"
@@ -45,10 +47,30 @@ export function GroupedDecisionQueue({
   }
 
   return (
-    <div className="flex flex-col gap-8">
-      <YesSection rows={yesRows} sentLoanIds={sentLoanIds} onSend={onSend} onBulkSend={onBulkSend} />
-      <HoldSection rows={holdRows} onClearForRetry={onClearForRetry} onStopPermanently={onStopPermanently} />
-      <NoSection rows={noRows} onStopPermanently={onStopPermanently} />
-    </div>
+    <Tabs defaultValue="yes" className="gap-4">
+      <TabsList>
+        <TabsTrigger value="yes" className="gap-2 data-[state=active]:text-success">
+          YES
+          <Badge variant="secondary">{yesRows.length}</Badge>
+        </TabsTrigger>
+        <TabsTrigger value="hold" className="gap-2 data-[state=active]:text-warning">
+          HOLD
+          <Badge variant="secondary">{holdRows.length}</Badge>
+        </TabsTrigger>
+        <TabsTrigger value="no" className="gap-2 data-[state=active]:text-destructive">
+          NO
+          <Badge variant="secondary">{noRows.length}</Badge>
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent value="yes">
+        <YesSection rows={yesRows} sentLoanIds={sentLoanIds} onSend={onSend} onBulkSend={onBulkSend} />
+      </TabsContent>
+      <TabsContent value="hold">
+        <HoldSection rows={holdRows} onClearForRetry={onClearForRetry} onStopPermanently={onStopPermanently} />
+      </TabsContent>
+      <TabsContent value="no">
+        <NoSection rows={noRows} onStopPermanently={onStopPermanently} />
+      </TabsContent>
+    </Tabs>
   )
 }

@@ -1,7 +1,6 @@
 "use client"
 
 import { OctagonXIcon, PlayIcon } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { formatCurrency } from "@/lib/utils"
@@ -16,10 +15,6 @@ interface HoldSectionProps {
 export function HoldSection({ rows, onClearForRetry, onStopPermanently }: HoldSectionProps) {
   return (
     <section className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-baseline gap-2">
-        <h2 className="text-lg font-semibold text-warning">HOLD &mdash; needs operator review</h2>
-        <Badge variant="secondary">{rows.length}</Badge>
-      </div>
       <p className="text-sm text-muted-foreground">
         Chargeback signal on every loan below. Reviewed one at a time &mdash; no bulk actions here.
       </p>

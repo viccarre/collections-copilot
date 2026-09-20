@@ -19,10 +19,6 @@ interface NoSectionProps {
 export function NoSection({ rows, onStopPermanently }: NoSectionProps) {
   return (
     <section className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-baseline gap-2">
-        <h2 className="text-lg font-semibold text-destructive">NO &mdash; not retrying</h2>
-        <Badge variant="secondary">{rows.length}</Badge>
-      </div>
       <p className="text-sm text-muted-foreground">
         Mostly read-only. An operator can still record an explicit, logged stop so a loan can&apos;t
         re-enter consideration if its history changes on a future file.

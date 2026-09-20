@@ -48,10 +48,6 @@ export function YesSection({ rows, sentLoanIds, onSend, onBulkSend }: YesSection
 
   return (
     <section className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-baseline gap-2">
-        <h2 className="text-lg font-semibold text-success">YES &mdash; retry recommended</h2>
-        <Badge variant="secondary">{rows.length}</Badge>
-      </div>
       <p className="text-sm text-muted-foreground">
         Nothing sends automatically. Accept a cadence group in bulk, or send loans one at a time.
       </p>

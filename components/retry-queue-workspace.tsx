@@ -4,6 +4,7 @@ import { useMemo, useState } from "react"
 import { FileStackIcon, RefreshCwIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { ActionLog } from "@/components/action-log"
 import { CollectionFileSummary } from "@/components/collection-file-summary"
 import { MetricsDashboard } from "@/components/metrics/metrics-dashboard"
@@ -101,10 +102,20 @@ export function RetryQueueWorkspace() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <CollectionFileSummary file={collectionFile} />
-        <Button variant="outline" onClick={handleSimulate} className="sm:self-start">
-          <RefreshCwIcon data-icon="inline-start" />
-          Simulate new file
-        </Button>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button variant="outline" onClick={handleSimulate} className="sm:self-start">
+                <RefreshCwIcon data-icon="inline-start" />
+                Simulate new file
+              </Button>
+            }
+          />
+          <TooltipContent>
+            Discards the current collection file and generates a new random subset of loans.
+            Operator decisions and the action log persist.
+          </TooltipContent>
+        </Tooltip>
       </div>
 
       <MetricsDashboard metrics={metrics} />
