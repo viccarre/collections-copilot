@@ -154,27 +154,6 @@ export function YesSection({ rows, collectedLoanIds, onCollect, onBulkCollect }:
                         <TableHead>Eligible today</TableHead>
                         <TableHead className="text-right">
                           <span className="inline-flex items-center justify-end gap-1">
-                            Priority score
-                            <Tooltip>
-                              <TooltipTrigger
-                                render={
-                                  <span tabIndex={0} className="text-muted-foreground hover:text-foreground">
-                                    <CircleHelpIcon className="size-3.5" />
-                                    <span className="sr-only">What is priority score?</span>
-                                  </span>
-                                }
-                              />
-                              <TooltipContent className="max-w-sm" align="end">
-                                Expected dollars recovered per attempt at this loan&apos;s failure streak (net of
-                                expected chargeback loss), scaled by how much is outstanding relative to a typical
-                                loan. Higher means: worth attempting sooner if capacity is limited. It is not a
-                                probability or a dollar amount on its own.
-                              </TooltipContent>
-                            </Tooltip>
-                          </span>
-                        </TableHead>
-                        <TableHead className="text-right">
-                          <span className="inline-flex items-center justify-end gap-1">
                             Exposure
                             <Tooltip>
                               <TooltipTrigger
@@ -191,7 +170,7 @@ export function YesSection({ rows, collectedLoanIds, onCollect, onBulkCollect }:
                             </Tooltip>
                           </span>
                         </TableHead>
-                        <TableHead>Rationale</TableHead>
+                        <TableHead className="w-[45%]">Rationale</TableHead>
                         <TableHead className="text-right">Action</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -206,13 +185,6 @@ export function YesSection({ rows, collectedLoanIds, onCollect, onBulkCollect }:
                             </TableCell>
                             <TableCell>
                               <EligibilityBadge eligible={row.is_eligible_today} />
-                            </TableCell>
-                            <TableCell className="text-right text-sm tabular-nums">
-                              {row.priority_score === null ? (
-                                <span className="text-muted-foreground">&mdash;</span>
-                              ) : (
-                                row.priority_score.toFixed(2)
-                              )}
                             </TableCell>
                             <TableCell className="text-right text-sm tabular-nums">
                               {formatCurrency(row.total_amount_outstanding)}
