@@ -9,10 +9,12 @@
  * UI components should call `scoreCollectionFile()` and never import the
  * raw JSON or scoring-engine.ts directly. This is the seam later stages
  * plug into without a rewrite:
- *   - Stage 3's operator queue will pass a live, session-built
- *     `OperatorDecision[]` array instead of `[]`.
- *   - Stage 4's metrics rollup will read from the same `DecisionRow[]`
- *     this module already produces.
+ *   - Stage 3's operator queue passes a live, session-built
+ *     `OperatorDecision[]` array (built from operator resume/stop actions)
+ *     instead of `[]`, and reads the enriched rows below to render dollar
+ *     exposure without changing scoring-engine.ts.
+ *   - Stage 4's metrics rollup will read from the same enriched rows this
+ *     module already produces.
  */
 
 import { getLoanHistory, type LoanHistoryRecord } from "@/lib/loan-history"
@@ -46,16 +48,44 @@ export function joinCollectionFileWithHistory(collectionLoans: CollectionFileLoa
 }
 
 /**
- * Joins and scores a simulated collection file end-to-end. Defaults to no
- * operator overrides and the default risk-appetite config, matching the
- * Stage 2 scenario.
+ * A DecisionRow plus the raw-snapshot display fields the operator queue
+ * needs (dollar exposure for sorting/grouping, bank, loan size) -- decide()
+ * and DecisionRow itself stay untouched; this is purely an enrichment done
+ * after scoring, in the data layer, so components never reach into
+ * LoanFeatures directly.
+ */
+export interface EnrichedDecisionRow extends DecisionRow {
+  payment_method_bank: string
+  loan_amount: number
+  total_amount_outstanding: number
+}
+
+/**
+ * Joins and scores a simulated collection file end-to-end, then enriches
+ * each decision with the display fields the operator queue needs. Defaults
+ * to no operator overrides and the default risk-appetite config; Stage 3
+ * passes the session's live operator-decisions array here.
  */
 export function scoreCollectionFile(
   file: SimulatedCollectionFile,
   operatorDecisions: OperatorDecision[] = [],
   config: RiskAppetiteConfig = DEFAULT_CONFIG,
-): DecisionRow[] {
+): EnrichedDecisionRow[] {
   const loans = joinCollectionFileWithHistory(file.loans)
+  const loansById = new Map(loans.map((loan) => [loan.loan_id, loan]))
   const asOf = new Date(`${file.asOf}T00:00:00.000Z`)
-  return runPortfolio(loans, asOf, operatorDecisions, config)
+  const decisions = runPortfolio(loans, asOf, operatorDecisions, config)
+
+  return decisions.map((decision) => {
+    const loan = loansById.get(decision.loan_id)
+    if (!loan) {
+      throw new Error(`No joined loan found for loan_id ${decision.loan_id} -- should be unreachable.`)
+    }
+    return {
+      ...decision,
+      payment_method_bank: loan.payment_method_bank,
+      loan_amount: loan.loan_amount,
+      total_amount_outstanding: loan.total_amount_outstanding,
+    }
+  })
 }
