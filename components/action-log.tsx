@@ -10,7 +10,7 @@ import { ACTION_LABELS, type ActionLogEntry } from "@/lib/action-log"
 import { cn } from "@/lib/utils"
 
 const ACTION_BADGE_CLASS: Record<ActionLogEntry["action"], string> = {
-  sent: "bg-success/15 text-success border-success/30",
+  collected: "bg-success/15 text-success border-success/30",
   "cleared-for-retry": "bg-success/15 text-success border-success/30",
   stopped: "bg-destructive/15 text-destructive border-destructive/30",
 }

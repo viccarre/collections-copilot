@@ -12,9 +12,9 @@ export function SessionActivityCard({ activity }: { activity: SessionActivity })
       <CardContent>
         <dl className="grid grid-cols-3 gap-3">
           <div className="flex flex-col gap-0.5">
-            <dt className="text-xs text-muted-foreground">Sent</dt>
-            <dd className="text-lg font-semibold tabular-nums text-success">{activity.sentCount}</dd>
-            <dd className="text-xs text-muted-foreground">{formatCurrency(activity.sentDollars)}</dd>
+            <dt className="text-xs text-muted-foreground">Collected</dt>
+            <dd className="text-lg font-semibold tabular-nums text-success">{activity.collectedCount}</dd>
+            <dd className="text-xs text-muted-foreground">{formatCurrency(activity.collectedDollars)}</dd>
           </div>
           <div className="flex flex-col gap-0.5">
             <dt className="text-xs text-muted-foreground">Cleared for retry</dt>

@@ -40,8 +40,8 @@ export interface ChargebackSegment {
 }
 
 export interface SessionActivity {
-  sentCount: number
-  sentDollars: number
+  collectedCount: number
+  collectedDollars: number
   clearedForRetryCount: number
   stoppedCount: number
 }
@@ -103,20 +103,20 @@ export function computeQueueMetrics(rows: EnrichedDecisionRow[], actionLog: Acti
   })
 
   const rowsByLoanId = new Map(rows.map((row) => [row.loan_id, row]))
-  let sentCount = 0
-  let sentDollars = 0
+  let collectedCount = 0
+  let collectedDollars = 0
   let clearedForRetryCount = 0
   let stoppedCount = 0
-  const countedSentLoanIds = new Set<number>()
+  const countedCollectedLoanIds = new Set<number>()
 
   for (const entry of actionLog) {
-    if (entry.action === "sent") {
-      // A loan can only be sent once in practice (rows disable the action
-      // afterward), but guard against double-counting a re-logged entry.
-      if (!countedSentLoanIds.has(entry.loan_id)) {
-        countedSentLoanIds.add(entry.loan_id)
-        sentCount += 1
-        sentDollars += rowsByLoanId.get(entry.loan_id)?.total_amount_outstanding ?? 0
+    if (entry.action === "collected") {
+      // A loan can only be collected once in practice (rows disable the
+      // action afterward), but guard against double-counting a re-logged entry.
+      if (!countedCollectedLoanIds.has(entry.loan_id)) {
+        countedCollectedLoanIds.add(entry.loan_id)
+        collectedCount += 1
+        collectedDollars += rowsByLoanId.get(entry.loan_id)?.total_amount_outstanding ?? 0
       }
     } else if (entry.action === "cleared-for-retry") {
       clearedForRetryCount += 1
@@ -136,6 +136,6 @@ export function computeQueueMetrics(rows: EnrichedDecisionRow[], actionLog: Acti
     attemptsAvoided: { heldForReview, writtenOff },
     dollarsProtectedFromChargebackRisk,
     chargebackBySegment,
-    sessionActivity: { sentCount, sentDollars, clearedForRetryCount, stoppedCount },
+    sessionActivity: { collectedCount, collectedDollars, clearedForRetryCount, stoppedCount },
   }
 }

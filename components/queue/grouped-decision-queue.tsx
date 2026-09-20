@@ -14,18 +14,18 @@ function byExposureDesc(a: EnrichedDecisionRow, b: EnrichedDecisionRow): number 
 
 interface GroupedDecisionQueueProps {
   rows: EnrichedDecisionRow[]
-  sentLoanIds: Set<number>
-  onSend: (row: EnrichedDecisionRow) => void
-  onBulkSend: (rows: EnrichedDecisionRow[]) => void
+  collectedLoanIds: Set<number>
+  onCollect: (row: EnrichedDecisionRow) => void
+  onBulkCollect: (rows: EnrichedDecisionRow[]) => void
   onClearForRetry: (row: EnrichedDecisionRow) => void
   onStopPermanently: (row: EnrichedDecisionRow) => void
 }
 
 export function GroupedDecisionQueue({
   rows,
-  sentLoanIds,
-  onSend,
-  onBulkSend,
+  collectedLoanIds,
+  onCollect,
+  onBulkCollect,
   onClearForRetry,
   onStopPermanently,
 }: GroupedDecisionQueueProps) {
@@ -50,7 +50,7 @@ export function GroupedDecisionQueue({
     <Tabs defaultValue="yes" className="gap-4">
       <TabsList>
         <TabsTrigger value="yes" className="gap-2 data-[state=active]:text-success">
-          Ready to send
+          Ready to collect
           <Badge variant="secondary">{yesRows.length}</Badge>
         </TabsTrigger>
         <TabsTrigger value="hold" className="gap-2 data-[state=active]:text-warning">
@@ -63,7 +63,7 @@ export function GroupedDecisionQueue({
         </TabsTrigger>
       </TabsList>
       <TabsContent value="yes">
-        <YesSection rows={yesRows} sentLoanIds={sentLoanIds} onSend={onSend} onBulkSend={onBulkSend} />
+        <YesSection rows={yesRows} collectedLoanIds={collectedLoanIds} onCollect={onCollect} onBulkCollect={onBulkCollect} />
       </TabsContent>
       <TabsContent value="hold">
         <HoldSection rows={holdRows} onClearForRetry={onClearForRetry} onStopPermanently={onStopPermanently} />

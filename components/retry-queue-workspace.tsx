@@ -20,10 +20,10 @@ export function RetryQueueWorkspace() {
   // Keyed by loan_id, not by file -- an operator's resume/stop decision is
   // about the loan, so it persists across "Simulate new file" clicks.
   const [operatorDecisions, setOperatorDecisions] = useState<Map<number, OperatorDecision>>(new Map())
-  // Which loans have been manually sent this session. Also loan-scoped, not
-  // file-scoped, so a previously-sent loan stays marked "Sent" if it
-  // reappears in a later simulated file.
-  const [sentLoanIds, setSentLoanIds] = useState<Set<number>>(new Set())
+  // Which loans have been manually collected on this session. Also
+  // loan-scoped, not file-scoped, so a previously-collected loan stays
+  // marked "Collected" if it reappears in a later simulated file.
+  const [collectedLoanIds, setCollectedLoanIds] = useState<Set<number>>(new Set())
   const [actionLog, setActionLog] = useState<ActionLogEntry[]>([])
 
   const rows = useMemo(
@@ -37,19 +37,19 @@ export function RetryQueueWorkspace() {
     setCollectionFile(simulateCollectionFile())
   }
 
-  function handleSend(row: EnrichedDecisionRow) {
-    setSentLoanIds((prev) => new Set(prev).add(row.loan_id))
-    setActionLog((prev) => [createActionLogEntry(row.loan_id, "sent", row.rationale), ...prev])
+  function handleCollect(row: EnrichedDecisionRow) {
+    setCollectedLoanIds((prev) => new Set(prev).add(row.loan_id))
+    setActionLog((prev) => [createActionLogEntry(row.loan_id, "collected", row.rationale), ...prev])
   }
 
-  function handleBulkSend(rowsToSend: EnrichedDecisionRow[]) {
-    setSentLoanIds((prev) => {
+  function handleBulkCollect(rowsToCollect: EnrichedDecisionRow[]) {
+    setCollectedLoanIds((prev) => {
       const next = new Set(prev)
-      for (const row of rowsToSend) next.add(row.loan_id)
+      for (const row of rowsToCollect) next.add(row.loan_id)
       return next
     })
     setActionLog((prev) => [
-      ...rowsToSend.map((row) => createActionLogEntry(row.loan_id, "sent", row.rationale)).reverse(),
+      ...rowsToCollect.map((row) => createActionLogEntry(row.loan_id, "collected", row.rationale)).reverse(),
       ...prev,
     ])
   }
@@ -122,9 +122,9 @@ export function RetryQueueWorkspace() {
 
       <GroupedDecisionQueue
         rows={rows}
-        sentLoanIds={sentLoanIds}
-        onSend={handleSend}
-        onBulkSend={handleBulkSend}
+        collectedLoanIds={collectedLoanIds}
+        onCollect={handleCollect}
+        onBulkCollect={handleBulkCollect}
         onClearForRetry={handleClearForRetry}
         onStopPermanently={handleStopPermanently}
       />

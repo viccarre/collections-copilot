@@ -1,10 +1,10 @@
 /**
  * Session-level audit trail for Stage 3's operator actions. This is UI/session
- * state, not scoring output -- it records what an operator DID (send /
+ * state, not scoring output -- it records what an operator DID (collect /
  * clear-for-retry / stop), not what the engine recommended.
  */
 
-export type OperatorActionType = "sent" | "cleared-for-retry" | "stopped"
+export type OperatorActionType = "collected" | "cleared-for-retry" | "stopped"
 
 export interface ActionLogEntry {
   id: string
@@ -16,7 +16,7 @@ export interface ActionLogEntry {
 }
 
 export const ACTION_LABELS: Record<OperatorActionType, string> = {
-  sent: "Sent",
+  collected: "Collected",
   "cleared-for-retry": "Cleared for retry",
   stopped: "Stopped permanently",
 }
