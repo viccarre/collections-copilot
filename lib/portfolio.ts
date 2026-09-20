@@ -13,8 +13,9 @@
  *     `OperatorDecision[]` array (built from operator resume/stop actions)
  *     instead of `[]`, and reads the enriched rows below to render dollar
  *     exposure without changing scoring-engine.ts.
- *   - Stage 4's metrics rollup will read from the same enriched rows this
- *     module already produces.
+ *   - Stage 4's metrics rollup (lib/metrics.ts) reads from the same
+ *     enriched rows this module produces, plus the Stage 3 action log --
+ *     it does not recompute anything scoring-related on its own.
  */
 
 import { getLoanHistory, type LoanHistoryRecord } from "@/lib/loan-history"
@@ -58,6 +59,7 @@ export interface EnrichedDecisionRow extends DecisionRow {
   payment_method_bank: string
   loan_amount: number
   total_amount_outstanding: number
+  has_chargeback: boolean
 }
 
 /**
@@ -86,6 +88,7 @@ export function scoreCollectionFile(
       payment_method_bank: loan.payment_method_bank,
       loan_amount: loan.loan_amount,
       total_amount_outstanding: loan.total_amount_outstanding,
+      has_chargeback: loan.has_chargeback,
     }
   })
 }

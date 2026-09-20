@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { ActionLog } from "@/components/action-log"
 import { CollectionFileSummary } from "@/components/collection-file-summary"
+import { MetricsDashboard } from "@/components/metrics/metrics-dashboard"
 import { GroupedDecisionQueue } from "@/components/queue/grouped-decision-queue"
-import { QueueSummary } from "@/components/queue-summary"
 import { createActionLogEntry, type ActionLogEntry } from "@/lib/action-log"
 import { simulateCollectionFile, type SimulatedCollectionFile } from "@/lib/collection-file"
+import { computeQueueMetrics } from "@/lib/metrics"
 import { scoreCollectionFile, type EnrichedDecisionRow } from "@/lib/portfolio"
 import type { OperatorDecision } from "@/lib/scoring-engine"
 
@@ -28,6 +29,8 @@ export function RetryQueueWorkspace() {
     () => (collectionFile ? scoreCollectionFile(collectionFile, Array.from(operatorDecisions.values())) : []),
     [collectionFile, operatorDecisions],
   )
+
+  const metrics = useMemo(() => computeQueueMetrics(rows, actionLog), [rows, actionLog])
 
   function handleSimulate() {
     setCollectionFile(simulateCollectionFile())
@@ -104,7 +107,7 @@ export function RetryQueueWorkspace() {
         </Button>
       </div>
 
-      <QueueSummary rows={rows} />
+      <MetricsDashboard metrics={metrics} />
 
       <GroupedDecisionQueue
         rows={rows}
