@@ -99,13 +99,13 @@ export function RetryQueueWorkspace() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <CollectionFileSummary file={collectionFile} />
         <Tooltip>
           <TooltipTrigger
             render={
-              <Button variant="outline" onClick={handleSimulate} className="sm:self-start">
+              <Button variant="outline" size="sm" onClick={handleSimulate} className="sm:self-start">
                 <RefreshCwIcon data-icon="inline-start" />
                 Simulate new file
               </Button>

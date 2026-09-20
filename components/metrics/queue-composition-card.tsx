@@ -2,7 +2,7 @@ import { CircleHelpIcon } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { formatCurrency, FULL_BALANCE_ASSUMPTION_NOTE } from "@/lib/utils"
-import type { QueueComposition } from "@/lib/metrics"
+import type { AttemptsAvoided, QueueComposition } from "@/lib/metrics"
 
 const SEGMENTS = [
   { key: "yes" as const, label: "Retry (YES)", barClass: "bg-success", textClass: "text-success" },
@@ -10,8 +10,15 @@ const SEGMENTS = [
   { key: "no" as const, label: "No retry", barClass: "bg-destructive", textClass: "text-destructive" },
 ]
 
-export function QueueCompositionCard({ composition }: { composition: QueueComposition }) {
+export function QueueCompositionCard({
+  composition,
+  attemptsAvoided,
+}: {
+  composition: QueueComposition
+  attemptsAvoided: AttemptsAvoided
+}) {
   const total = composition.totalCount
+  const avoidedCount = attemptsAvoided.heldForReview.count + attemptsAvoided.writtenOff.count
 
   return (
     <Card>
@@ -37,7 +44,11 @@ export function QueueCompositionCard({ composition }: { composition: QueueCompos
           </p>
         </div>
 
-        <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted" role="img" aria-label="Queue composition by decision">
+        <div
+          className="flex h-2 w-full overflow-hidden rounded-full bg-muted"
+          role="img"
+          aria-label="Queue composition by decision"
+        >
           {SEGMENTS.map((segment) => {
             const bucket = composition[segment.key]
             const pct = total === 0 ? 0 : (bucket.count / total) * 100
@@ -58,6 +69,14 @@ export function QueueCompositionCard({ composition }: { composition: QueueCompos
             )
           })}
         </dl>
+
+        {avoidedCount > 0 && (
+          <p className="text-xs text-muted-foreground">
+            {avoidedCount} not attempted today &middot; {attemptsAvoided.heldForReview.count} held for review (
+            {formatCurrency(attemptsAvoided.heldForReview.dollars)}) &middot; {attemptsAvoided.writtenOff.count}{" "}
+            written off ({formatCurrency(attemptsAvoided.writtenOff.dollars)})
+          </p>
+        )}
       </CardContent>
     </Card>
   )
