@@ -6,7 +6,7 @@
  * Belvo's own data store instead of a static sample.
  */
 
-import loanHistoryData from "@/data/loan_history_sample.json"
+import loanHistoryData from "@/data/loan_history_150.json"
 import type { LoanFeatures } from "@/lib/scoring-engine"
 
 /** The historic-only slice of LoanFeatures -- everything except the raw snapshot fields. */
