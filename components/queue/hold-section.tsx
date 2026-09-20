@@ -20,7 +20,7 @@ export function HoldSection({ rows, onClearForRetry, onStopPermanently }: HoldSe
       </p>
 
       {rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No HOLD loans in this collection file.</p>
+        <p className="text-sm text-muted-foreground">No loans need review in this collection file.</p>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-border">
           <Table>

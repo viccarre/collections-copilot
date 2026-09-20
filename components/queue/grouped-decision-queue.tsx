@@ -50,15 +50,15 @@ export function GroupedDecisionQueue({
     <Tabs defaultValue="yes" className="gap-4">
       <TabsList>
         <TabsTrigger value="yes" className="gap-2 data-[state=active]:text-success">
-          YES
+          Ready to send
           <Badge variant="secondary">{yesRows.length}</Badge>
         </TabsTrigger>
         <TabsTrigger value="hold" className="gap-2 data-[state=active]:text-warning">
-          HOLD
+          Needs review
           <Badge variant="secondary">{holdRows.length}</Badge>
         </TabsTrigger>
         <TabsTrigger value="no" className="gap-2 data-[state=active]:text-destructive">
-          NO
+          Not retrying
           <Badge variant="secondary">{noRows.length}</Badge>
         </TabsTrigger>
       </TabsList>

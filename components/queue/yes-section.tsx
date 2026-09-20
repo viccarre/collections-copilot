@@ -1,8 +1,10 @@
 "use client"
 
+import { useState } from "react"
 import { CheckIcon, SendIcon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { formatCurrency } from "@/lib/utils"
 import type { EnrichedDecisionRow } from "@/lib/portfolio"
@@ -16,12 +18,13 @@ const YES_TRACK_ORDER: TreatmentTrack[] = [
   "long_tail_dormant",
 ]
 
+// Operator-facing labels -- avoid the model's internal track names.
 const YES_TRACK_LABELS: Partial<Record<TreatmentTrack, string>> = {
   new_unattempted: "New / unattempted",
-  post_success_standard: "Post-success standard",
+  post_success_standard: "Recently paid, standard cadence",
   standard_cadence: "Standard cadence",
-  cost_aware_throttle: "Cost-aware throttle",
-  long_tail_dormant: "Long-tail dormant",
+  cost_aware_throttle: "Reduced cadence (low success rate)",
+  long_tail_dormant: "Long-shot, rarely retried",
 }
 
 function cadenceLabel(rows: EnrichedDecisionRow[]): string {
@@ -46,6 +49,14 @@ export function YesSection({ rows, sentLoanIds, onSend, onBulkSend }: YesSection
     rows: rows.filter((row) => row.treatment_track === track),
   })).filter((group) => group.rows.length > 0)
 
+  const [activeTrack, setActiveTrack] = useState<string>(subgroups[0]?.track ?? "")
+  // If the previously active cadence group disappeared (e.g. a new file was
+  // simulated), fall back to the first available group instead of showing
+  // a tab list with nothing selected.
+  const selectedTrack = subgroups.some((group) => group.track === activeTrack)
+    ? activeTrack
+    : subgroups[0]?.track ?? ""
+
   return (
     <section className="flex flex-col gap-4">
       <p className="text-sm text-muted-foreground">
@@ -53,23 +64,29 @@ export function YesSection({ rows, sentLoanIds, onSend, onBulkSend }: YesSection
       </p>
 
       {subgroups.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No YES loans in this collection file.</p>
+        <p className="text-sm text-muted-foreground">No loans are ready to send in this collection file.</p>
       ) : (
-        <div className="flex flex-col gap-6">
+        <Tabs value={selectedTrack} onValueChange={setActiveTrack} className="gap-4">
+          <TabsList>
+            {subgroups.map(({ track, rows: groupRows }) => (
+              <TabsTrigger key={track} value={track} className="gap-2">
+                {YES_TRACK_LABELS[track] ?? track}
+                <Badge variant="secondary">{groupRows.length}</Badge>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
           {subgroups.map(({ track, rows: groupRows }) => {
             const unsent = groupRows.filter((row) => !sentLoanIds.has(row.loan_id))
             const unsentExposure = unsent.reduce((sum, row) => sum + row.total_amount_outstanding, 0)
 
             return (
-              <div key={track} className="flex flex-col gap-3 rounded-lg border border-border p-4">
+              <TabsContent key={track} value={track} className="flex flex-col gap-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h3 className="text-sm font-semibold">{YES_TRACK_LABELS[track] ?? track}</h3>
-                    <p className="text-xs text-muted-foreground">
-                      {groupRows.length} loan{groupRows.length !== 1 ? "s" : ""} &middot; {cadenceLabel(groupRows)}{" "}
-                      cadence
-                    </p>
-                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {groupRows.length} loan{groupRows.length !== 1 ? "s" : ""} &middot; {cadenceLabel(groupRows)}{" "}
+                    cadence
+                  </p>
                   {unsent.length > 0 ? (
                     <Button size="sm" onClick={() => onBulkSend(unsent)}>
                       <SendIcon data-icon="inline-start" />
@@ -130,10 +147,10 @@ export function YesSection({ rows, sentLoanIds, onSend, onBulkSend }: YesSection
                     </TableBody>
                   </Table>
                 </div>
-              </div>
+              </TabsContent>
             )
           })}
-        </div>
+        </Tabs>
       )}
     </section>
   )

@@ -25,7 +25,7 @@ export function NoSection({ rows, onStopPermanently }: NoSectionProps) {
       </p>
 
       {rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No NO loans in this collection file.</p>
+        <p className="text-sm text-muted-foreground">No loans are excluded from retry in this collection file.</p>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-border">
           <Table>
