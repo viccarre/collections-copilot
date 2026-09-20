@@ -11,6 +11,7 @@ import { ActionLog } from "@/components/action-log"
 import { CollectionFileSummary } from "@/components/collection-file-summary"
 import { MetricsDashboard } from "@/components/metrics/metrics-dashboard"
 import { GroupedDecisionQueue } from "@/components/queue/grouped-decision-queue"
+import type { AwaitingResponseOutcome } from "@/components/queue/resolve-awaiting-popover"
 import { createActionLogEntry, type ActionLogEntry } from "@/lib/action-log"
 import { simulateCollectionFile, type SimulatedCollectionFile } from "@/lib/collection-file"
 import { computeQueueMetrics } from "@/lib/metrics"
@@ -31,6 +32,11 @@ export function RetryQueueWorkspace() {
   // once contacted, a loan stays parked in Awaiting response even if it
   // reappears in a later simulated file.
   const [awaitingResponseLoanIds, setAwaitingResponseLoanIds] = useState<Set<number>>(new Set())
+  // Every loan ever contacted this session, for the "Contacted" row badge.
+  // Unlike awaitingResponseLoanIds, this never clears on Resolve -- it's a
+  // historical marker so a loan that gets resolved back into circulation
+  // still shows an operator it was already reached out to once today.
+  const [contactedLoanIds, setContactedLoanIds] = useState<Set<number>>(new Set())
   // Manual due-date overrides. This never changes what the scoring engine
   // computes -- it only changes what's displayed and logs the operator's
   // intent; nothing auto-fires on the picked date.
@@ -98,11 +104,38 @@ export function RetryQueueWorkspace() {
 
   function handleContactBorrower(row: EnrichedDecisionRow) {
     setAwaitingResponseLoanIds((prev) => new Set(prev).add(row.loan_id))
+    setContactedLoanIds((prev) => new Set(prev).add(row.loan_id))
     setActionLog((prev) => [
       createActionLogEntry(
         row.loan_id,
         "contacted-borrower",
         `${row.rationale} An operator contacted the borrower directly instead of another automated attempt -- this loan moved to Awaiting response.`,
+      ),
+      ...prev,
+    ])
+  }
+
+  // Manual escape hatch for Awaiting response -- until real response-capture
+  // is built, this is the only way to move a contacted loan forward. Note is
+  // a free-text log entry, not structured data.
+  function handleResolveAwaitingResponse(row: EnrichedDecisionRow, outcome: AwaitingResponseOutcome, note: string) {
+    setAwaitingResponseLoanIds((prev) => {
+      const next = new Set(prev)
+      next.delete(row.loan_id)
+      return next
+    })
+    const decidedAt = new Date().toISOString()
+    setOperatorDecisions((prev) => {
+      const next = new Map(prev)
+      next.set(row.loan_id, { loan_id: row.loan_id, decision: outcome === "cleared" ? "resume" : "stop", decided_at: decidedAt })
+      return next
+    })
+    const noteSuffix = note.trim() ? ` Borrower response note: "${note.trim()}"` : ""
+    setActionLog((prev) => [
+      createActionLogEntry(
+        row.loan_id,
+        outcome === "cleared" ? "cleared-for-retry" : "stopped",
+        `${row.rationale} Resolved from Awaiting response.${noteSuffix}`,
       ),
       ...prev,
     ])
@@ -198,12 +231,14 @@ export function RetryQueueWorkspace() {
         awaitingRows={awaitingRows}
         collectedLoanIds={collectedLoanIds}
         rescheduledDueDates={rescheduledDueDates}
+        contactedLoanIds={contactedLoanIds}
         onCollect={handleCollect}
         onBulkCollect={handleBulkCollect}
         onClearForRetry={handleClearForRetry}
         onStopPermanently={handleStopPermanently}
         onContactBorrower={handleContactBorrower}
         onReschedule={handleReschedule}
+        onResolveAwaitingResponse={handleResolveAwaitingResponse}
       />
     </div>
   )

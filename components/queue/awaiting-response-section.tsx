@@ -4,6 +4,7 @@ import { CircleHelpIcon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { type AwaitingResponseOutcome, ResolveAwaitingPopover } from "@/components/queue/resolve-awaiting-popover"
 import { formatCurrency, FULL_BALANCE_ASSUMPTION_NOTE } from "@/lib/utils"
 import type { EnrichedDecisionRow } from "@/lib/portfolio"
 
@@ -18,9 +19,10 @@ const RESPONSE_PLACEHOLDER_NOTE =
 
 interface AwaitingResponseSectionProps {
   rows: EnrichedDecisionRow[]
+  onResolve: (row: EnrichedDecisionRow, outcome: AwaitingResponseOutcome, note: string) => void
 }
 
-export function AwaitingResponseSection({ rows }: AwaitingResponseSectionProps) {
+export function AwaitingResponseSection({ rows, onResolve }: AwaitingResponseSectionProps) {
   return (
     <section className="flex flex-col gap-4">
       <p className="text-sm text-muted-foreground">
@@ -57,6 +59,7 @@ export function AwaitingResponseSection({ rows }: AwaitingResponseSectionProps) 
                 </TableHead>
                 <TableHead className="w-[55%]">Rationale</TableHead>
                 <TableHead className="text-right">Status</TableHead>
+                <TableHead className="text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -73,6 +76,12 @@ export function AwaitingResponseSection({ rows }: AwaitingResponseSectionProps) 
                   </TableCell>
                   <TableCell className="text-right">
                     <Badge variant="secondary">Awaiting response</Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <ResolveAwaitingPopover
+                      loanId={row.loan_id}
+                      onResolve={(outcome, note) => onResolve(row, outcome, note)}
+                    />
                   </TableCell>
                 </TableRow>
               ))}

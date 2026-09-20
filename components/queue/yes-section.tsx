@@ -1,7 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { CalendarClockIcon, CheckIcon, CircleHelpIcon, HandCoinsIcon, MessageCircleIcon } from "lucide-react"
+import {
+  CalendarClockIcon,
+  CheckIcon,
+  CircleHelpIcon,
+  HandCoinsIcon,
+  MessageCircleIcon,
+  OctagonXIcon,
+} from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -21,6 +28,12 @@ const RESCHEDULABLE_TRACKS = new Set<TreatmentTrack>(["standard_cadence", "cost_
 // directly (instead of another blind automated attempt) is a reasonable
 // alternative to offer per row.
 const CONTACTABLE_TRACKS = new Set<TreatmentTrack>(["cost_aware_throttle", "long_tail_dormant"])
+
+// Long-shot's rationale already points toward a manual write-off or
+// legal-review decision -- give that track (and only that track) a
+// one-click way to act on its own rationale. Standard/reduced cadence still
+// route through Contact borrower or the Needs review tab instead.
+const STOPPABLE_TRACKS = new Set<TreatmentTrack>(["long_tail_dormant"])
 
 const YES_TRACK_ORDER: TreatmentTrack[] = [
   "new_unattempted",
@@ -78,20 +91,24 @@ interface YesSectionProps {
   rows: EnrichedDecisionRow[]
   collectedLoanIds: Set<number>
   rescheduledDueDates: Map<number, string>
+  contactedLoanIds: Set<number>
   onCollect: (row: EnrichedDecisionRow) => void
   onBulkCollect: (rows: EnrichedDecisionRow[]) => void
   onContactBorrower: (row: EnrichedDecisionRow) => void
   onReschedule: (row: EnrichedDecisionRow, date: string) => void
+  onStopPermanently: (row: EnrichedDecisionRow) => void
 }
 
 export function YesSection({
   rows,
   collectedLoanIds,
   rescheduledDueDates,
+  contactedLoanIds,
   onCollect,
   onBulkCollect,
   onContactBorrower,
   onReschedule,
+  onStopPermanently,
 }: YesSectionProps) {
   const subgroups = YES_TRACK_ORDER.map((track) => ({
     track,
@@ -202,10 +219,38 @@ export function YesSection({
                         const overrideDate = rescheduledDueDates.get(row.loan_id)
                         const canReschedule = RESCHEDULABLE_TRACKS.has(row.treatment_track)
                         const canContact = CONTACTABLE_TRACKS.has(row.treatment_track)
+                        const canStop = STOPPABLE_TRACKS.has(row.treatment_track)
+                        const wasContacted = contactedLoanIds.has(row.loan_id)
                         const computedDueDate = row.next_eligible_at ? row.next_eligible_at.slice(0, 10) : undefined
                         return (
                           <TableRow key={row.loan_id}>
-                            <TableCell className="font-mono text-sm">{row.loan_id}</TableCell>
+                            <TableCell className="font-mono text-sm">
+                              <div className="flex flex-col items-start gap-1">
+                                {row.loan_id}
+                                {overrideDate || wasContacted ? (
+                                  <div className="flex flex-wrap gap-1">
+                                    {overrideDate ? (
+                                      <Badge
+                                        variant="outline"
+                                        className="gap-1 border-warning/30 font-normal text-warning"
+                                      >
+                                        <CalendarClockIcon className="size-3" />
+                                        Rescheduled &rarr; {overrideDate}
+                                      </Badge>
+                                    ) : null}
+                                    {wasContacted ? (
+                                      <Badge
+                                        variant="outline"
+                                        className="gap-1 border-primary/30 font-normal text-primary"
+                                      >
+                                        <MessageCircleIcon className="size-3" />
+                                        Contacted
+                                      </Badge>
+                                    ) : null}
+                                  </div>
+                                ) : null}
+                              </div>
+                            </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
                               {row.payment_method_bank}
                             </TableCell>
@@ -226,11 +271,11 @@ export function YesSection({
                               ) : null}
                             </TableCell>
                             <TableCell className="text-right">
-                              <div className="flex flex-wrap justify-end gap-2">
+                              <div className="flex flex-wrap items-center justify-end gap-2">
                                 {collected ? (
                                   <Badge variant="secondary">Collected</Badge>
                                 ) : (
-                                  <Button size="sm" variant="outline" onClick={() => onCollect(row)}>
+                                  <Button size="sm" onClick={() => onCollect(row)}>
                                     <HandCoinsIcon data-icon="inline-start" />
                                     Collect
                                   </Button>
@@ -243,9 +288,26 @@ export function YesSection({
                                   />
                                 ) : null}
                                 {canContact ? (
-                                  <Button size="sm" variant="outline" onClick={() => onContactBorrower(row)}>
-                                    <MessageCircleIcon data-icon="inline-start" />
-                                    Contact borrower
+                                  <Tooltip>
+                                    <TooltipTrigger
+                                      render={
+                                        <Button
+                                          size="icon-sm"
+                                          variant="outline"
+                                          onClick={() => onContactBorrower(row)}
+                                        >
+                                          <MessageCircleIcon />
+                                          <span className="sr-only">Contact borrower</span>
+                                        </Button>
+                                      }
+                                    />
+                                    <TooltipContent>Contact borrower</TooltipContent>
+                                  </Tooltip>
+                                ) : null}
+                                {canStop ? (
+                                  <Button size="sm" variant="destructive" onClick={() => onStopPermanently(row)}>
+                                    <OctagonXIcon data-icon="inline-start" />
+                                    Stop permanently
                                   </Button>
                                 ) : null}
                               </div>

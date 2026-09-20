@@ -49,9 +49,9 @@ export function ReschedulePopover({
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger
         render={
-          <Button size="sm" variant="outline">
-            <CalendarClockIcon data-icon="inline-start" />
-            Reschedule
+          <Button size="icon-sm" variant="outline" title="Reschedule">
+            <CalendarClockIcon />
+            <span className="sr-only">Reschedule loan {loanId}</span>
           </Button>
         }
       />

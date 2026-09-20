@@ -9,6 +9,7 @@ import { YesSection } from "@/components/queue/yes-section"
 import { HoldSection } from "@/components/queue/hold-section"
 import { NoSection } from "@/components/queue/no-section"
 import { AwaitingResponseSection } from "@/components/queue/awaiting-response-section"
+import type { AwaitingResponseOutcome } from "@/components/queue/resolve-awaiting-popover"
 import type { EnrichedDecisionRow } from "@/lib/portfolio"
 
 function byExposureDesc(a: EnrichedDecisionRow, b: EnrichedDecisionRow): number {
@@ -30,12 +31,14 @@ interface GroupedDecisionQueueProps {
   awaitingRows: EnrichedDecisionRow[]
   collectedLoanIds: Set<number>
   rescheduledDueDates: Map<number, string>
+  contactedLoanIds: Set<number>
   onCollect: (row: EnrichedDecisionRow) => void
   onBulkCollect: (rows: EnrichedDecisionRow[]) => void
   onClearForRetry: (row: EnrichedDecisionRow) => void
   onStopPermanently: (row: EnrichedDecisionRow) => void
   onContactBorrower: (row: EnrichedDecisionRow) => void
   onReschedule: (row: EnrichedDecisionRow, date: string) => void
+  onResolveAwaitingResponse: (row: EnrichedDecisionRow, outcome: AwaitingResponseOutcome, note: string) => void
 }
 
 export function GroupedDecisionQueue({
@@ -43,12 +46,14 @@ export function GroupedDecisionQueue({
   awaitingRows,
   collectedLoanIds,
   rescheduledDueDates,
+  contactedLoanIds,
   onCollect,
   onBulkCollect,
   onClearForRetry,
   onStopPermanently,
   onContactBorrower,
   onReschedule,
+  onResolveAwaitingResponse,
 }: GroupedDecisionQueueProps) {
   const { yesRows, holdRows, noRows } = useMemo(
     () => ({
@@ -152,10 +157,12 @@ export function GroupedDecisionQueue({
           rows={yesRows}
           collectedLoanIds={collectedLoanIds}
           rescheduledDueDates={rescheduledDueDates}
+          contactedLoanIds={contactedLoanIds}
           onCollect={onCollect}
           onBulkCollect={onBulkCollect}
           onContactBorrower={onContactBorrower}
           onReschedule={onReschedule}
+          onStopPermanently={onStopPermanently}
         />
       </TabsContent>
       <TabsContent value="hold">
@@ -170,7 +177,7 @@ export function GroupedDecisionQueue({
         <NoSection rows={noRows} onStopPermanently={onStopPermanently} />
       </TabsContent>
       <TabsContent value="awaiting">
-        <AwaitingResponseSection rows={awaitingRows} />
+        <AwaitingResponseSection rows={awaitingRows} onResolve={onResolveAwaitingResponse} />
       </TabsContent>
     </Tabs>
   )
