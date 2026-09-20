@@ -27,6 +27,16 @@ const YES_TRACK_LABELS: Partial<Record<TreatmentTrack, string>> = {
   long_tail_dormant: "Long-shot, rarely retried",
 }
 
+function EligibilityBadge({ eligible }: { eligible: boolean }) {
+  return eligible ? (
+    <Badge className="bg-success text-success-foreground">Yes</Badge>
+  ) : (
+    <Badge variant="outline" className="text-muted-foreground">
+      No
+    </Badge>
+  )
+}
+
 function cadenceLabel(rows: EnrichedDecisionRow[]): string {
   const values = Array.from(
     new Set(rows.map((row) => row.recommended_cadence_days).filter((value): value is number => value !== null)),
@@ -107,8 +117,10 @@ export function YesSection({ rows, sentLoanIds, onSend, onBulkSend }: YesSection
                       <TableRow>
                         <TableHead>Loan ID</TableHead>
                         <TableHead>Bank</TableHead>
+                        <TableHead>Eligible today</TableHead>
                         <TableHead className="text-right">Priority score</TableHead>
                         <TableHead className="text-right">Exposure</TableHead>
+                        <TableHead>Rationale</TableHead>
                         <TableHead className="text-right">Action</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -121,6 +133,9 @@ export function YesSection({ rows, sentLoanIds, onSend, onBulkSend }: YesSection
                             <TableCell className="text-sm text-muted-foreground">
                               {row.payment_method_bank}
                             </TableCell>
+                            <TableCell>
+                              <EligibilityBadge eligible={row.is_eligible_today} />
+                            </TableCell>
                             <TableCell className="text-right text-sm tabular-nums">
                               {row.priority_score === null ? (
                                 <span className="text-muted-foreground">&mdash;</span>
@@ -130,6 +145,9 @@ export function YesSection({ rows, sentLoanIds, onSend, onBulkSend }: YesSection
                             </TableCell>
                             <TableCell className="text-right text-sm tabular-nums">
                               {formatCurrency(row.total_amount_outstanding)}
+                            </TableCell>
+                            <TableCell className="max-w-md whitespace-normal text-sm text-muted-foreground">
+                              {row.rationale}
                             </TableCell>
                             <TableCell className="text-right">
                               {sent ? (

@@ -1,10 +1,21 @@
 "use client"
 
 import { OctagonXIcon, PlayIcon } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { formatCurrency } from "@/lib/utils"
 import type { EnrichedDecisionRow } from "@/lib/portfolio"
+
+function EligibilityBadge({ eligible }: { eligible: boolean }) {
+  return eligible ? (
+    <Badge className="bg-success text-success-foreground">Yes</Badge>
+  ) : (
+    <Badge variant="outline" className="text-muted-foreground">
+      No
+    </Badge>
+  )
+}
 
 interface HoldSectionProps {
   rows: EnrichedDecisionRow[]
@@ -28,6 +39,7 @@ export function HoldSection({ rows, onClearForRetry, onStopPermanently }: HoldSe
               <TableRow>
                 <TableHead>Loan ID</TableHead>
                 <TableHead>Bank</TableHead>
+                <TableHead>Eligible today</TableHead>
                 <TableHead className="text-right">Exposure</TableHead>
                 <TableHead>Rationale</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -38,6 +50,9 @@ export function HoldSection({ rows, onClearForRetry, onStopPermanently }: HoldSe
                 <TableRow key={row.loan_id}>
                   <TableCell className="font-mono text-sm">{row.loan_id}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{row.payment_method_bank}</TableCell>
+                  <TableCell>
+                    <EligibilityBadge eligible={row.is_eligible_today} />
+                  </TableCell>
                   <TableCell className="text-right text-sm tabular-nums">
                     {formatCurrency(row.total_amount_outstanding)}
                   </TableCell>
