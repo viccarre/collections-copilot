@@ -183,6 +183,24 @@ function formatDollars(amount: number): string {
   return amount.toLocaleString("en-US", { maximumFractionDigits: 0 });
 }
 
+/**
+ * Human-readable "when is the next attempt due" clause from a computed
+ * next_eligible_at. Compares calendar dates (not raw millisecond deltas) so
+ * an attempt timestamp that isn't exactly at midnight doesn't get rounded
+ * into the wrong day relative to asOf.
+ */
+function dueDateClause(nextEligibleIso: string, asOf: Date): string {
+  const nextDate = new Date(nextEligibleIso);
+  const dateLabel = nextEligibleIso.slice(0, 10);
+  const nextDay = Date.UTC(nextDate.getUTCFullYear(), nextDate.getUTCMonth(), nextDate.getUTCDate());
+  const asOfDay = Date.UTC(asOf.getUTCFullYear(), asOf.getUTCMonth(), asOf.getUTCDate());
+  const diffDays = Math.round((nextDay - asOfDay) / 86400000);
+  if (diffDays < 0) return `Next attempt was due on ${dateLabel} and is now overdue.`;
+  if (diffDays === 0) return `Next attempt is due today (${dateLabel}).`;
+  if (diffDays === 1) return `Next attempt due tomorrow (${dateLabel}).`;
+  return `Next attempt due in ${diffDays} days (${dateLabel}).`;
+}
+
 // ---------------------------------------------------------------------------
 // The decision function -- run this live, per loan, for the current as-of
 // date, the current risk-appetite config, and the operator-decisions map
@@ -293,26 +311,43 @@ export function decide(
   const tier = loanSizeTier(loan.loan_amount, config);
   let cadence: number;
   let track: TreatmentTrack;
-  let rationale: string;
 
   if (streak < config.streakStandardMax) {
     cadence = config.cadenceDays.standard;
     track = "standard_cadence";
-    rationale = `${streak} failed attempt${streak !== 1 ? "s" : ""} in a row on insufficient funds, but recovery odds are still reasonable at this point -- keep retrying on the normal ${cadence}-day schedule.`;
   } else if (streak < config.longTailStreak) {
     cadence =
       tier === "large" ? config.cadenceDays.throttleLarge : tier === "mid" ? config.cadenceDays.throttleMid : config.cadenceDays.throttleSmall;
     track = "cost_aware_throttle";
-    rationale = `${streak} failed attempts in a row on insufficient funds -- the chance of recovering money here has dropped to roughly 1% or less. Retries continue, but spaced out to every ${cadence} days (this is a ${tier}-size loan) so effort isn't wasted chasing a loan that rarely pays.`;
   } else {
     cadence = config.cadenceDays.dormant;
     track = "long_tail_dormant";
-    rationale = `${streak} failed attempts in a row with no success -- recovery at this point is very unlikely. This loan stays technically eligible for a retry every ${cadence} days, but it's a strong candidate for a manual write-off or legal-review decision instead of continued automated retries.`;
+  }
+
+  const nextElig = addDays(loan.last_attempt_at!, Math.max(cadence, config.minCooldownDays));
+  const dueClause = dueDateClause(nextElig, asOf);
+
+  let rationale: string;
+  if (track === "standard_cadence") {
+    const threshold = config.streakStandardMax;
+    const reBucketClause =
+      streak + 1 >= threshold
+        ? ` If this attempt also fails, it will move to the Reduced cadence track at ${threshold} consecutive failures.`
+        : ` If failures continue, it moves to the Reduced cadence track once it reaches ${threshold} consecutive failures.`;
+    rationale = `${streak} failed attempt${streak !== 1 ? "s" : ""} in a row on insufficient funds, but recovery odds are still reasonable at this point -- keep retrying on the normal ${cadence}-day schedule. ${dueClause}${reBucketClause}`;
+  } else if (track === "cost_aware_throttle") {
+    const threshold = config.longTailStreak;
+    const reBucketClause =
+      streak + 1 >= threshold
+        ? ` If this attempt also fails, it will move to the Long-shot track at ${threshold} consecutive failures.`
+        : ` If failures continue, it moves to the Long-shot track once it reaches ${threshold} consecutive failures.`;
+    rationale = `${streak} failed attempts in a row on insufficient funds -- the chance of recovering money here has dropped to roughly 1% or less. Retries continue, but spaced out to every ${cadence} days (this is a ${tier}-size loan) so effort isn't wasted chasing a loan that rarely pays. ${dueClause}${reBucketClause}`;
+  } else {
+    rationale = `${streak} failed attempts in a row with no success -- recovery at this point is very unlikely. This loan stays technically eligible for a retry every ${cadence} days, but it's a strong candidate for a manual write-off or legal-review decision instead of continued automated retries. ${dueClause}`;
   }
   if (clearedByOperator)
     rationale += ` This loan also has chargeback history, but an operator cleared it for retry on ${override!.decided_at.slice(0, 10)}.`;
 
-  const nextElig = addDays(loan.last_attempt_at!, Math.max(cadence, config.minCooldownDays));
   return {
     loan_id: loan.loan_id,
     treatment_track: track,
