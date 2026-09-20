@@ -207,7 +207,7 @@ export function decide(
       next_eligible_at: null,
       is_eligible_today: false,
       priority_score: null,
-      rationale: `Operator recorded an explicit stop decision on ${override.decided_at.slice(0, 10)} -- permanent, overrides all other signals.`,
+      rationale: `An operator manually stopped this loan on ${override.decided_at.slice(0, 10)} -- that decision is permanent and overrides everything else the model would otherwise recommend.`,
     };
   }
 
@@ -221,7 +221,7 @@ export function decide(
       next_eligible_at: asOf.toISOString(),
       is_eligible_today: true,
       priority_score: priorityScore(0, loan.total_amount_outstanding),
-      rationale: "No attempt history -- first attempt is due now.",
+      rationale: "This loan has never had a retry attempt, so there's no track record yet -- a first attempt is recommended right away.",
     };
   }
 
@@ -250,7 +250,7 @@ export function decide(
       next_eligible_at: null,
       is_eligible_today: false,
       priority_score: null,
-      rationale: `Chargeback signal present (A2) -- ${cbCount} chargeback${cbCount !== 1 ? "s" : ""} totaling $${formatDollars(cbAmount)} reversed, most recent ${recency}. Pause automation; requires an operator-recorded outcome before resuming.`,
+      rationale: `This loan has ${cbCount} chargeback${cbCount !== 1 ? "s" : ""} totaling $${formatDollars(cbAmount)}, most recently ${recency}. That history means automated retries are paused until an operator reviews it and records a decision to resume or stop.`,
     };
   }
 
@@ -264,7 +264,7 @@ export function decide(
       next_eligible_at: null,
       is_eligible_today: false,
       priority_score: null,
-      rationale: "Most recent failure is a permanently-dead reason (not insufficient funds) -- stop automated rail retries; route downstream.",
+      rationale: "The last attempt failed for a reason that means it will never succeed on this payment rail -- not simply insufficient funds. Continuing to retry here would be pointless, so this loan should be routed to a different collections path instead.",
     };
   }
 
@@ -272,9 +272,10 @@ export function decide(
   if (loan.last_status === "successful") {
     const cadence = config.cadenceDays.postSuccess;
     const nextElig = addDays(loan.last_attempt_at!, Math.max(cadence, config.minCooldownDays));
-    let rationale =
-      "Most recent attempt succeeded -- resumed at standard cadence rather than stopped (A1); revisit if Belvo confirms this is single-payoff, not installment.";
-    if (clearedByOperator) rationale += ` (Chargeback history present but cleared by operator decision on ${override!.decided_at.slice(0, 10)}.)`;
+    const lastSuccessDate = loan.last_attempt_at ? loan.last_attempt_at.slice(0, 10) : "recently";
+    let rationale = `The last attempt on this loan succeeded on ${lastSuccessDate} -- retries continue on the normal schedule in case this was a partial payment rather than the full payoff. Worth confirming with Belvo whether this loan is paid in installments; if it's a single lump-sum loan, it may already be resolved.`;
+    if (clearedByOperator)
+      rationale += ` This loan also has chargeback history, but an operator cleared it for retry on ${override!.decided_at.slice(0, 10)}.`;
     return {
       loan_id: loan.loan_id,
       treatment_track: "post_success_standard",
@@ -297,18 +298,19 @@ export function decide(
   if (streak < config.streakStandardMax) {
     cadence = config.cadenceDays.standard;
     track = "standard_cadence";
-    rationale = `Insufficient-funds failure, streak ${streak} (< ${config.streakStandardMax}) -- decay curve still productive, standard cadence.`;
+    rationale = `${streak} failed attempt${streak !== 1 ? "s" : ""} in a row on insufficient funds, but recovery odds are still reasonable at this point -- keep retrying on the normal ${cadence}-day schedule.`;
   } else if (streak < config.longTailStreak) {
     cadence =
       tier === "large" ? config.cadenceDays.throttleLarge : tier === "mid" ? config.cadenceDays.throttleMid : config.cadenceDays.throttleSmall;
     track = "cost_aware_throttle";
-    rationale = `Insufficient-funds failure, streak ${streak} (>= ${config.streakStandardMax}) -- success rate has crashed under ~1%; cadence throttled to every ${cadence}d for this loan's '${tier}' size tier (A4).`;
+    rationale = `${streak} failed attempts in a row on insufficient funds -- the chance of recovering money here has dropped to roughly 1% or less. Retries continue, but spaced out to every ${cadence} days (this is a ${tier}-size loan) so effort isn't wasted chasing a loan that rarely pays.`;
   } else {
     cadence = config.cadenceDays.dormant;
     track = "long_tail_dormant";
-    rationale = `Insufficient-funds failure, streak ${streak} (>= ${config.longTailStreak}) -- long-tail exhausted account; still technically retryable but recovery is negligible, cadence stretched to every ${cadence}d and flagged separately from standard throttle for a deliberate write-off/legal review decision (A5).`;
+    rationale = `${streak} failed attempts in a row with no success -- recovery at this point is very unlikely. This loan stays technically eligible for a retry every ${cadence} days, but it's a strong candidate for a manual write-off or legal-review decision instead of continued automated retries.`;
   }
-  if (clearedByOperator) rationale += ` (Chargeback history present but cleared by operator decision on ${override!.decided_at.slice(0, 10)}.)`;
+  if (clearedByOperator)
+    rationale += ` This loan also has chargeback history, but an operator cleared it for retry on ${override!.decided_at.slice(0, 10)}.`;
 
   const nextElig = addDays(loan.last_attempt_at!, Math.max(cadence, config.minCooldownDays));
   return {
