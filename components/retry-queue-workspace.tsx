@@ -167,11 +167,17 @@ export function RetryQueueWorkspace() {
             <FileStackIcon />
           </EmptyMedia>
           <EmptyTitle>No collection file loaded</EmptyTitle>
-          <EmptyDescription>
-            Simulate today&apos;s collection file to see which loans are due for retry and how the
-            scoring engine treats each one. This stands in for the upstream lending-system feed --
-            not a real bank feed in this prototype.
-          </EmptyDescription>
+                <EmptyDescription>
+                  In a live deployment, this platform would connect to the lending system by API or a
+                  scheduled feed, which delivers a new collection file automatically each day. This button
+                  simulates that arrival on demand, so you can see which loans are due for retry and how
+                  the scoring engine treats each one.
+                  <br />
+                  <span className="mt-1.5 block text-xs">
+                    The file size is randomized on each click just to show how the product behaves across
+                    different volumes -- it isn&apos;t meant to reflect a real production file size.
+                  </span>
+                </EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
           <Button onClick={handleSimulate}>

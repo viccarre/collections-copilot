@@ -67,12 +67,12 @@ export interface SimulatedCollectionFile {
   loans: CollectionFileLoan[]
 }
 
-const MIN_SIMULATED_LOANS = 30
-const MAX_SIMULATED_LOANS = 60
+const MIN_SIMULATED_LOANS = 80
+const MAX_SIMULATED_LOANS = 150
 
 /**
  * "Generates" today's collection file by randomly selecting a realistic
- * subset of the pool (30 to 60 loans, drawn from the full 150-loan pool).
+ * subset of the pool (80 to 150 loans, drawn from the full 150-loan pool).
  * Real fields, unmodified -- only which loans are included varies between
  * calls.
  */
