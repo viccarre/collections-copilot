@@ -4,8 +4,10 @@
  *
  * There's no live bank feed behind this prototype, so `simulateCollectionFile()`
  * stands in for that upstream system: each call draws a random-sized subset
- * of the real 150-loan sample (never fabricated -- only which loans happen to
- * be "in today's file" varies) and stamps it with a fresh generated_at time.
+ * of the loan sample (150 real loans plus 7 disclosed synthetic loans added
+ * to populate the post_success_standard track -- see loan_history_150.json's
+ * sample_note -- never fabricated results, only which loans happen to be "in
+ * today's file" varies) and stamps it with a fresh generated_at time.
  *
  * This file only knows about the raw snapshot fields (loan_amount,
  * overdue_days, etc). It has no idea about attempt history -- that lives in
@@ -54,7 +56,7 @@ function computeAnchoredAsOf(): string {
 /** Dataset-anchored "today", as a YYYY-MM-DD date string. */
 export const COLLECTION_FILE_AS_OF = computeAnchoredAsOf()
 
-/** All 150 real loans that could show up in a given day's collection file. */
+/** All loans (150 real + 7 disclosed synthetic) that could show up in a given day's collection file. */
 export function getCollectionFilePool(): CollectionFileLoan[] {
   return collectionFileSample.loans
 }
@@ -72,9 +74,9 @@ const MAX_SIMULATED_LOANS = 150
 
 /**
  * "Generates" today's collection file by randomly selecting a realistic
- * subset of the pool (80 to 150 loans, drawn from the full 150-loan pool).
- * Real fields, unmodified -- only which loans are included varies between
- * calls.
+ * subset of the pool (80 to 150 loans, drawn from the full pool -- 150 real
+ * loans plus 7 disclosed synthetic loans, see getCollectionFilePool). Real
+ * fields, unmodified -- only which loans are included varies between calls.
  */
 export function simulateCollectionFile(): SimulatedCollectionFile {
   const pool = getCollectionFilePool()
