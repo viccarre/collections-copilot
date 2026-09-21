@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { ReschedulePopover } from "@/components/queue/reschedule-popover"
-import { formatCurrency, FULL_BALANCE_ASSUMPTION_NOTE } from "@/lib/utils"
+import { cn, formatCurrency, FULL_BALANCE_ASSUMPTION_NOTE } from "@/lib/utils"
 import type { EnrichedDecisionRow } from "@/lib/portfolio"
 import type { TreatmentTrack } from "@/lib/scoring-engine"
 
@@ -50,22 +50,6 @@ const YES_TRACK_LABELS: Partial<Record<TreatmentTrack, string>> = {
   standard_cadence: "Standard cadence",
   cost_aware_throttle: "Reduced cadence (low success rate)",
   long_tail_dormant: "Long-shot, rarely retried",
-}
-
-// Operator-facing explanations for each YES sub-track: what the segment
-// means, why the model still recommends retrying, and what to expect if
-// this loan is collected on today.
-const YES_TRACK_EXPLANATIONS: Partial<Record<TreatmentTrack, string>> = {
-  new_unattempted:
-    "No retry attempts have ever been made on this loan. The model always recommends a first attempt immediately -- there's no failure history yet to suggest it won't work. Expect a normal first-attempt outcome: most first attempts either succeed or fail with insufficient funds; a minority chargeback or hit a dead reason.",
-  post_success_standard:
-    "The loan's most recent attempt succeeded. Rather than assuming the debt is fully resolved, the model resumes it on the standard 3-day cadence in case this was a partial/installment payment. Expect a relatively high chance of another success, but confirm with Belvo whether this loan is single-payoff or installment -- if single-payoff, this loan should have already been closed out.",
-  standard_cadence:
-    "The loan has failed on insufficient funds, but its current failure streak is still short (below the standard-cadence ceiling), so the historical success rate at this streak is still meaningful. Expect a moderate chance of recovering something -- this is the highest-value bucket of the four failure-based tracks.",
-  cost_aware_throttle:
-    "The failure streak has crossed into territory where the historical success rate has crashed to roughly 1% or less. The model still says retry, but slows the cadence (5/10/14 days, based on loan size) so the operation doesn't burn attempts on a loan that rarely pays. Expect most attempts here to fail again; a small number will recover, weighted toward larger loans which get retried most often.",
-  long_tail_dormant:
-    "The failure streak is extremely long -- historical recovery at this point is negligible. The loan is still technically retryable, so it isn't marked NO, but it's cadence-stretched to every 30 days and separated from the throttle bucket so an operator can make a deliberate write-off or legal-review call. Expect collecting here to rarely succeed; treat any success as a bonus, not the expectation.",
 }
 
 function EligibilityBadge({ eligible }: { eligible: boolean }) {
@@ -110,18 +94,20 @@ export function YesSection({
   onReschedule,
   onStopPermanently,
 }: YesSectionProps) {
+  // Every cadence track always gets a sub-tab, even when it has no loans
+  // today -- an empty track is deemphasized (see isEmpty below) rather than
+  // hidden, so the set of categories stays stable and predictable.
   const subgroups = YES_TRACK_ORDER.map((track) => ({
     track,
     rows: rows.filter((row) => row.treatment_track === track),
-  })).filter((group) => group.rows.length > 0)
+  }))
+  const firstNonEmptyTrack = subgroups.find((group) => group.rows.length > 0)?.track ?? subgroups[0]?.track ?? ""
 
-  const [activeTrack, setActiveTrack] = useState<string>(subgroups[0]?.track ?? "")
+  const [activeTrack, setActiveTrack] = useState<string>(firstNonEmptyTrack)
   // If the previously active cadence group disappeared (e.g. a new file was
-  // simulated), fall back to the first available group instead of showing
+  // simulated), fall back to the first non-empty group instead of showing
   // a tab list with nothing selected.
-  const selectedTrack = subgroups.some((group) => group.track === activeTrack)
-    ? activeTrack
-    : subgroups[0]?.track ?? ""
+  const selectedTrack = subgroups.some((group) => group.track === activeTrack) ? activeTrack : firstNonEmptyTrack
 
   return (
     <section className="flex flex-col gap-4">
@@ -129,37 +115,45 @@ export function YesSection({
         Nothing collects automatically. Accept a cadence group in bulk, or collect loans one at a time.
       </p>
 
-      {subgroups.length === 0 ? (
+      {rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">No loans are ready to collect in this collection file.</p>
       ) : (
         <Tabs value={selectedTrack} onValueChange={setActiveTrack} className="gap-4">
-          <TabsList>
-            {subgroups.map(({ track, rows: groupRows }) => (
-              <TabsTrigger key={track} value={track} className="gap-2">
-                {YES_TRACK_LABELS[track] ?? track}
-                <Badge variant="secondary">{groupRows.length}</Badge>
-                {YES_TRACK_EXPLANATIONS[track] ? (
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={
-                        <span
-                          tabIndex={0}
-                          className="text-muted-foreground hover:text-foreground"
-                          onClick={(event) => event.stopPropagation()}
-                        >
-                          <CircleHelpIcon className="size-3.5" />
-                          <span className="sr-only">What is {YES_TRACK_LABELS[track] ?? track}?</span>
-                        </span>
-                      }
-                    />
-                    <TooltipContent className="max-w-sm">{YES_TRACK_EXPLANATIONS[track]}</TooltipContent>
-                  </Tooltip>
-                ) : null}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+          <div className="flex flex-col gap-1.5 border-l-2 border-border pl-3">
+            <p className="text-xs text-muted-foreground">Within Ready to collect:</p>
+            <TabsList className="h-7 w-fit gap-1 bg-muted/60 p-0.5">
+              {subgroups.map(({ track, rows: groupRows }) => {
+                const isEmpty = groupRows.length === 0
+                return (
+                  <TabsTrigger
+                    key={track}
+                    value={track}
+                    className={cn("gap-1.5 px-2 py-0.5 text-xs font-normal", isEmpty && "text-muted-foreground/70")}
+                  >
+                    {YES_TRACK_LABELS[track] ?? track}
+                    <Badge
+                      variant={isEmpty ? "outline" : "secondary"}
+                      className={cn("text-[10px]", isEmpty && "text-muted-foreground")}
+                    >
+                      {groupRows.length}
+                    </Badge>
+                  </TabsTrigger>
+                )
+              })}
+            </TabsList>
+          </div>
 
           {subgroups.map(({ track, rows: groupRows }) => {
+            if (groupRows.length === 0) {
+              return (
+                <TabsContent key={track} value={track}>
+                  <p className="text-sm text-muted-foreground">
+                    No loans in {YES_TRACK_LABELS[track] ?? track} today.
+                  </p>
+                </TabsContent>
+              )
+            }
+
             const uncollected = groupRows.filter((row) => !collectedLoanIds.has(row.loan_id))
             const uncollectedExposure = uncollected.reduce((sum, row) => sum + row.total_amount_outstanding, 0)
 

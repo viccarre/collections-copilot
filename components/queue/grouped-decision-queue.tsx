@@ -2,6 +2,7 @@
 
 import { useMemo } from "react"
 import { CircleHelpIcon } from "lucide-react"
+import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -72,12 +73,25 @@ export function GroupedDecisionQueue({
     )
   }
 
+  const isYesEmpty = yesRows.length === 0
+  const isHoldEmpty = holdRows.length === 0
+  const isNoEmpty = noRows.length === 0
+  const isAwaitingEmpty = awaitingRows.length === 0
+
   return (
     <Tabs defaultValue="yes" className="gap-4">
-      <TabsList>
-        <TabsTrigger value="yes" className="gap-2 data-[state=active]:text-success">
+      <TabsList className="h-9 p-1">
+        <TabsTrigger
+          value="yes"
+          className={cn(
+            "gap-2 text-sm data-[state=active]:text-success data-[state=active]:font-semibold",
+            isYesEmpty && "text-muted-foreground/70",
+          )}
+        >
           Ready to collect
-          <Badge variant="secondary">{yesRows.length}</Badge>
+          <Badge variant={isYesEmpty ? "outline" : "secondary"} className={isYesEmpty ? "text-muted-foreground" : undefined}>
+            {yesRows.length}
+          </Badge>
           <Tooltip>
             <TooltipTrigger
               render={
@@ -94,9 +108,17 @@ export function GroupedDecisionQueue({
             <TooltipContent className="max-w-sm">{TOP_LEVEL_TAB_EXPLANATIONS.yes}</TooltipContent>
           </Tooltip>
         </TabsTrigger>
-        <TabsTrigger value="hold" className="gap-2 data-[state=active]:text-warning">
+        <TabsTrigger
+          value="hold"
+          className={cn(
+            "gap-2 text-sm data-[state=active]:text-warning data-[state=active]:font-semibold",
+            isHoldEmpty && "text-muted-foreground/70",
+          )}
+        >
           Needs review
-          <Badge variant="secondary">{holdRows.length}</Badge>
+          <Badge variant={isHoldEmpty ? "outline" : "secondary"} className={isHoldEmpty ? "text-muted-foreground" : undefined}>
+            {holdRows.length}
+          </Badge>
           <Tooltip>
             <TooltipTrigger
               render={
@@ -113,9 +135,17 @@ export function GroupedDecisionQueue({
             <TooltipContent className="max-w-sm">{TOP_LEVEL_TAB_EXPLANATIONS.hold}</TooltipContent>
           </Tooltip>
         </TabsTrigger>
-        <TabsTrigger value="no" className="gap-2 data-[state=active]:text-destructive">
+        <TabsTrigger
+          value="no"
+          className={cn(
+            "gap-2 text-sm data-[state=active]:text-destructive data-[state=active]:font-semibold",
+            isNoEmpty && "text-muted-foreground/70",
+          )}
+        >
           Not retrying
-          <Badge variant="secondary">{noRows.length}</Badge>
+          <Badge variant={isNoEmpty ? "outline" : "secondary"} className={isNoEmpty ? "text-muted-foreground" : undefined}>
+            {noRows.length}
+          </Badge>
           <Tooltip>
             <TooltipTrigger
               render={
@@ -132,9 +162,20 @@ export function GroupedDecisionQueue({
             <TooltipContent className="max-w-sm">{TOP_LEVEL_TAB_EXPLANATIONS.no}</TooltipContent>
           </Tooltip>
         </TabsTrigger>
-        <TabsTrigger value="awaiting" className="gap-2 data-[state=active]:text-primary">
+        <TabsTrigger
+          value="awaiting"
+          className={cn(
+            "gap-2 text-sm data-[state=active]:text-primary data-[state=active]:font-semibold",
+            isAwaitingEmpty && "text-muted-foreground/70",
+          )}
+        >
           Awaiting response
-          <Badge variant="secondary">{awaitingRows.length}</Badge>
+          <Badge
+            variant={isAwaitingEmpty ? "outline" : "secondary"}
+            className={isAwaitingEmpty ? "text-muted-foreground" : undefined}
+          >
+            {awaitingRows.length}
+          </Badge>
           <Tooltip>
             <TooltipTrigger
               render={
