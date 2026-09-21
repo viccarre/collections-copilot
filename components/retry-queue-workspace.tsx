@@ -191,47 +191,49 @@ export function RetryQueueWorkspace() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <CollectionFileSummary file={collectionFile} />
-        <div className="flex flex-wrap items-center gap-2 sm:self-start">
-          <Dialog>
-            <DialogTrigger
-              render={
-                <Button variant="outline" size="sm">
-                  <HistoryIcon data-icon="inline-start" />
-                  Action log
-                  <Badge variant="secondary">{actionLog.length}</Badge>
-                </Button>
-              }
-            />
-            <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Action log</DialogTitle>
-                <DialogDescription>
-                  Every operator action recorded this session, most recent first.
-                </DialogDescription>
-              </DialogHeader>
-              <ActionLog entries={actionLog} />
-            </DialogContent>
-          </Dialog>
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button variant="outline" size="sm" onClick={handleSimulate}>
-                  <RefreshCwIcon data-icon="inline-start" />
-                  Simulate a new Collection File
-                </Button>
-              }
-            />
-            <TooltipContent>
-              Discards the current collection file and generates a new random subset of loans.
-              Operator decisions and the action log persist.
-            </TooltipContent>
-          </Tooltip>
+      <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <CollectionFileSummary file={collectionFile} />
+          <div className="flex flex-wrap items-center gap-2 sm:self-start">
+            <Dialog>
+              <DialogTrigger
+                render={
+                  <Button variant="outline" size="sm">
+                    <HistoryIcon data-icon="inline-start" />
+                    Action log
+                    <Badge variant="secondary">{actionLog.length}</Badge>
+                  </Button>
+                }
+              />
+              <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Action log</DialogTitle>
+                  <DialogDescription>
+                    Every operator action recorded this session, most recent first.
+                  </DialogDescription>
+                </DialogHeader>
+                <ActionLog entries={actionLog} />
+              </DialogContent>
+            </Dialog>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button variant="outline" size="sm" onClick={handleSimulate}>
+                    <RefreshCwIcon data-icon="inline-start" />
+                    Simulate a new Collection File
+                  </Button>
+                }
+              />
+              <TooltipContent>
+                Discards the current collection file and generates a new random subset of loans.
+                Operator decisions and the action log persist.
+              </TooltipContent>
+            </Tooltip>
+          </div>
         </div>
-      </div>
 
-      <MetricsDashboard metrics={metrics} />
+        <MetricsDashboard metrics={metrics} />
+      </div>
 
       <GroupedDecisionQueue
         rows={activeRows}
